@@ -3,120 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>喀爾文：皇之降臨 v4.9</title>
+    <title>喀爾文：皇之權能 v5.1</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; touch-action: manipulation; color: white; }
         #game-stage { position: relative; width: 100vw; height: 100vh; background: radial-gradient(circle, #1a1a2e 0%, #000 100%); overflow: hidden; }
-        
         #safe-zone { position: absolute; top: 50%; left: 50%; width: 50px; height: 50px; margin: -25px 0 0 -25px; z-index: 10; background-image: url('safe.jpg'); background-size: cover; border-radius: 50%; border: 2px solid #f1c40f; box-shadow: 0 0 15px #f1c40f; transition: all 0.3s; }
         #safe-zone.shielded { border: 5px solid #3498db; box-shadow: 0 0 30px #3498db; transform: scale(1.2); }
 
-        /* 敵人樣式清單 */
-        .enemy { position: absolute; border-radius: 50%; background-image: url('12672.jpg'); background-size: cover; background-position: center; z-index: 5; }
+        .enemy { position: absolute; border-radius: 50%; background-image: url('12672.jpg'); background-size: cover; z-index: 5; transition: border 0.3s, opacity 0.3s; }
         .t-normal { border: 2px solid #fff; }
-        .t-tank { border: 4px solid #f1c40f; }
         .t-speed { border: 2px solid #3498db; }
-        .t-ghost { opacity: 0.3; border: 1px solid #fff; }
-        .t-split { border: 2px solid #2ecc71; }
-        .t-blink { border: 2px solid #9b59b6; } 
         .t-heal { border: 3px solid #2ecc71; box-shadow: 0 0 15px #2ecc71; }
+        .t-coward { border: 3px solid #f39c12; }
         .t-build { border: 3px solid #a36629; }
         .t-greed { border: 4px solid #e91e63; box-shadow: 0 0 20px #e91e63; }
-        .t-coward { border: 3px solid #f39c12; }
+        .t-sniper { border: 3px solid #ff0000; box-shadow: 0 0 10px #ff0000; }
         .t-boss { border: 6px solid #ff4757; box-shadow: 0 0 40px #ff4757; }
+        .t-clone { border: 1px solid #ff4757; opacity: 0.7; } /* 皇的分身 */
         
-        /* UI 層 */
-        #ui-layer { position: absolute; top: 15px; width: 100%; text-align: center; pointer-events: none; z-index: 20; }
-        .hp-heart { font-size: 24px; color: #ff4757; margin: 0 5px; }
-        
-        /* 音量拉桿 */
-        #volume-panel { position: absolute; top: 10px; left: 10px; z-index: 50; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 10px; pointer-events: auto; }
-        #volume-panel label { font-size: 12px; display: block; margin-bottom: 2px; }
+        /* 隱藏邊框技能 */
+        .hide-border { border: none !important; box-shadow: none !important; }
 
+        .laser { position: absolute; height: 2px; background: rgba(255, 0, 0, 0.5); transform-origin: left center; z-index: 4; pointer-events: none; }
+        .laser-charge { animation: blink 0.5s infinite; background: rgba(255, 0, 0, 1); height: 3px; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        #ui-layer { position: absolute; top: 15px; width: 100%; text-align: center; pointer-events: none; z-index: 20; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; z-index: 100; padding: 20px; box-sizing: border-box; overflow-y: auto; }
-        
-        /* 強化版圖鑑 */
-        .guide { width: 100%; max-width: 450px; background: #222; padding: 15px; border-radius: 15px; font-size: 12px; margin: 10px 0; text-align: left; border: 1px solid #444; }
-        .guide-item { display: flex; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #333; padding-bottom: 6px; }
-        .g-icon { width: 30px; height: 30px; border-radius: 50%; background-image: url('12672.jpg'); background-size: cover; margin-right: 12px; flex-shrink: 0; }
-        .g-info b { font-size: 14px; }
-        
-        .btn { padding: 12px 60px; background: #f1c40f; color: #000; border: none; border-radius: 50px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        #boss-hp-bar { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); width: 70%; height: 12px; background: #333; border-radius: 6px; display: none; z-index: 30; border: 2px solid #fff; }
-        #boss-hp-inner { width: 100%; height: 100%; background: linear-gradient(to right, #ff4757, #ff6b81); border-radius: 4px; transition: width 0.1s; }
+        .vol-control { margin: 10px 0; background: #333; padding: 10px; border-radius: 10px; width: 80%; max-width: 300px; text-align: center; pointer-events: auto; }
+        .btn { padding: 12px 60px; background: #f1c40f; color: #000; border: none; border-radius: 50px; font-size: 18px; font-weight: bold; cursor: pointer; }
+        #boss-hp-bar { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); width: 70%; height: 12px; background: #333; display: none; z-index: 30; border: 2px solid #fff; border-radius: 6px; }
+        #boss-hp-inner { width: 100%; height: 100%; background: #ff4757; transition: width 0.2s; }
+        #skill-announcement { position: fixed; top: 120px; width: 100%; text-align: center; color: #ff4757; font-size: 24px; font-weight: bold; text-shadow: 0 0 10px #000; pointer-events: none; z-index: 40; display: none; }
     </style>
 </head>
 <body>
 
     <div id="game-stage">
-        <div id="volume-panel">
-            <label>🔊 音量控制</label>
-            <input type="range" id="vol-slider" min="0" max="1" step="0.1" value="0.5" onchange="updateVolume(this.value)">
-        </div>
-        
         <div id="ui-layer">
             <div id="hp-display"><span class="hp-heart">❤️</span><span class="hp-heart">❤️</span><span class="hp-heart">❤️</span></div>
             <div id="score-text">分數: 0</div>
             <div id="timer-text">時間: 0s</div>
         </div>
-        
+        <div id="skill-announcement"></div>
         <div id="boss-hp-bar"><div id="boss-hp-inner"></div></div>
         <div id="safe-zone"></div>
     </div>
 
     <div id="start-ui" class="overlay">
-        <h2 style="color:#f1c40f; margin: 5px 0;">喀爾文保衛戰 v4.9</h2>
-        <div class="guide">
-            <div class="guide-item"><div class="g-icon" style="border:2px solid #fff"></div><div class="g-info"><b style="color:#fff">普通 / 衝刺 (白/藍)</b><br>基礎敵人。衝刺種體型稍大且速度較快。</div></div>
-            <div class="guide-item"><div class="g-icon" style="border:2px solid #2ecc71; width:22px; height:22px;"></div><div class="g-info"><b style="color:#2ecc71">補血天使 (綠)</b><br>不可殺！讓它撞擊核心可回血。擊中則消失不回血。</div></div>
-            <div class="guide-item"><div class="g-icon" style="border:2px solid #f39c12"></div><div class="g-info"><b style="color:#f39c12">膽小者 (橘)</b><br>點擊會往回逃跑，逃跑時再被點擊會轉身繼續衝擊。</div></div>
-            <div class="guide-item"><div class="g-icon" style="border:2px solid #a36629"></div><div class="g-info"><b style="color:#a36629">建築 (褐)</b><br>擊殺後核心獲得「藍色護盾」，可抵擋一次傷害。</div></div>
-            <div class="guide-item"><div class="g-icon" style="border:2px solid #e91e63"></div><div class="g-info"><b style="color:#e91e63">貪婪 (粉紅)</b><br>高分單位。擊殺會炸碎全場普通種（天使除外）。</div></div>
-            <div class="guide-item"><div class="g-icon" style="border:2px solid #9b59b6"></div><div class="g-info"><b style="color:#9b59b6">傳送 (紫) / 分裂 (綠邊)</b><br>紫：死後重生於對角。綠邊：死後分裂為二。</div></div>
-            <div class="guide-item"><div class="g-icon" style="border:2px solid #ff4757; width:40px; height:40px;"></div><div class="g-info"><b style="color:#ff4757">喀爾文皇 (紅)</b><br>90秒出現的魔王。血厚速慢，會召喚部下。</div></div>
+        <h2 style="color:#f1c40f">喀爾文保衛戰 v5.1</h2>
+        <div class="vol-control">
+            <label>🔊 音量設定: <span id="vol-pct">50</span>%</label><br>
+            <input type="range" id="global-vol" min="0" max="1" step="0.05" value="0.5" style="width:100%">
         </div>
-        <button class="btn" onclick="startGame()">接受挑戰</button>
+        <button class="btn" onclick="startGame()">開始防禦任務</button>
     </div>
 
     <div id="end-ui" class="overlay" style="display:none; justify-content:center;">
-        <h1 id="end-title" style="color:#ff4757">防線崩潰</h1>
-        <p id="final-stats" style="font-size: 20px;"></p>
-        <button class="btn" onclick="location.reload()">重新整備</button>
+        <h1 id="end-title">任務結束</h1>
+        <p id="final-stats"></p>
+        <button class="btn" onclick="location.reload()">重新挑戰</button>
     </div>
 
     <audio id="bgm" src="bgm.mp3" loop></audio>
     <audio id="hit-sound" src="hit.mp3"></audio>
 
     <script>
-        let score = 0, playerHP = 3, isLive = false, hasShield = false, startTime, baseSpeed = 1.0, spawnRate = 1600, bossActive = false;
+        let score = 0, playerHP = 3, isLive = false, hasShield = false, startTime, baseSpeed = 1.0, spawnRate = 1600, bossActive = false, bossRef = null;
         const stage = document.getElementById('game-stage');
         const bgm = document.getElementById('bgm');
         const hitSound = document.getElementById('hit-sound');
+        const volSlider = document.getElementById('global-vol');
+        const volPct = document.getElementById('vol-pct');
+
+        // 音量持久化
+        const savedVol = localStorage.getItem('calvin_vol') || 0.5;
+        volSlider.value = savedVol;
+        volPct.innerText = Math.round(savedVol * 100);
+        volSlider.oninput = () => {
+            const v = volSlider.value;
+            volPct.innerText = Math.round(v * 100);
+            bgm.volume = v; hitSound.volume = v;
+            localStorage.setItem('calvin_vol', v);
+        };
 
         const TYPES = [
-            { id:'normal', hp:1, speed:1.0, size:60, weight:40, class:'t-normal' },
-            { id:'tank', hp:4, speed:0.4, size:110, weight:8, class:'t-tank' },
+            { id:'normal', hp:1, speed:1.0, size:60, weight:35, class:'t-normal' },
             { id:'speed', hp:1, speed:1.6, size:50, weight:12, class:'t-speed' }, 
-            { id:'split', hp:1, speed:0.8, size:65, weight:8, class:'t-split' },
-            { id:'blink', hp:1, speed:1.0, size:60, weight:8, class:'t-blink' },
-            { id:'ghost', hp:1, speed:0.9, size:60, weight:8, class:'t-ghost' },
+            { id:'coward', hp:1, speed:1.3, size:60, weight:10, class:'t-coward' },
             { id:'build', hp:1, speed:0.7, size:65, weight:5, class:'t-build' },
             { id:'greed', hp:1, speed:0.5, size:80, weight:3, class:'t-greed' },
-            { id:'coward', hp:1, speed:1.3, size:60, weight:8, class:'t-coward' } 
+            { id:'sniper', hp:1, speed:0.4, size:55, weight:8, class:'t-sniper' }
         ];
 
-        function updateVolume(val) {
-            bgm.volume = val;
-            hitSound.volume = val;
-        }
-
         function startGame() {
-            updateVolume(document.getElementById('vol-slider').value);
+            bgm.volume = volSlider.value; hitSound.volume = volSlider.value;
             bgm.play().catch(()=>{});
             document.getElementById('start-ui').remove();
             isLive = true; startTime = Date.now();
-            spawnController();
-            updateStats();
+            spawnController(); updateStats();
             setInterval(spawnHealer, 30000); 
         }
 
@@ -125,21 +110,76 @@
             const sec = Math.floor((Date.now()-startTime)/1000);
             document.getElementById('timer-text').innerText = `時間: ${sec}s`;
             if (sec >= 90 && !bossActive) spawnBoss();
-            baseSpeed = Math.min(2.3, 1.0 + (sec/45)); 
-            spawnRate = Math.max(450, 1600 - (sec*10));
+            baseSpeed = Math.min(2.3, 1.0 + (sec/50));
+            spawnRate = Math.max(450, 1600 - (sec*12));
             setTimeout(updateStats, 1000);
         }
 
-        function spawnHealer() { if(!isLive) return; createEnemy(undefined, undefined, { id:'heal', hp:1, speed:0.5, size:35, class:'t-heal' }); }
+        function clearMinions() {
+            document.querySelectorAll('.enemy').forEach(el => {
+                if(!el.classList.contains('t-boss') && !el.classList.contains('t-heal')) {
+                    if(el.laser) el.laser.remove();
+                    el.remove();
+                }
+            });
+        }
 
         function spawnBoss() {
-            bossActive = true;
+            bossActive = true; clearMinions();
             document.getElementById('boss-hp-bar').style.display = 'block';
-            createEnemy(innerWidth/2, -250, { id:'boss', hp:60, speed:0.08, size:240, class:'t-boss' });
+            bossRef = createEnemy(innerWidth/2, -250, { id:'boss', hp:30, maxHp:30, speed:0.05, size:220, class:'t-boss' });
+            setInterval(triggerBossSkill, 12000);
+        }
+
+        function triggerBossSkill() {
+            if(!isLive || !bossActive || !bossRef) return;
+            const skills = ['分身', '狙擊部隊', '粉絲團', '嗨各位'];
+            const skill = skills[Math.floor(Math.random() * skills.length)];
+            const ann = document.getElementById('skill-announcement');
+            ann.innerText = `皇之權能：${skill}`;
+            ann.style.display = 'block';
+            setTimeout(() => ann.style.display = 'none', 3000);
+
+            if(skill === '分身') {
+                const count = Math.floor(Math.random()*8) + 8;
+                for(let i=0; i<count; i++) {
+                    createEnemy(bossRef.state.x, bossRef.state.y, { id:'clone', hp:1, speed:1.5, size:100, class:'t-clone' });
+                }
+            } else if(skill === '狙擊部隊') {
+                const originalSpeed = bossRef.state.speed;
+                bossRef.state.speed = 0;
+                let count = 0;
+                const interval = setInterval(() => {
+                    createEnemy(undefined, undefined, TYPES.find(t=>t.id==='sniper'));
+                    count++;
+                    if(count >= 10) clearInterval(interval);
+                }, 500);
+                setTimeout(() => { if(bossRef.state) bossRef.state.speed = originalSpeed; }, 7000);
+            } else if(skill === '粉絲團') {
+                bossRef.style.backgroundImage = "url('zibao.jpg')"; // 假設有齊寶圖，若無則維持
+                const originalSpeed = bossRef.state.speed;
+                bossRef.state.speed = 0;
+                const count = Math.floor(Math.random()*8) + 13;
+                const randomType = TYPES[Math.floor(Math.random()*TYPES.length)];
+                for(let i=0; i<count; i++) {
+                    setTimeout(() => createEnemy(bossRef.state.x, bossRef.state.y, randomType), i * 200);
+                }
+                setTimeout(() => { 
+                    if(bossRef.state) {
+                        bossRef.state.speed = originalSpeed;
+                        bossRef.style.backgroundImage = "url('12672.jpg')";
+                    }
+                }, 10000);
+            } else if(skill === '嗨各位') {
+                document.querySelectorAll('.enemy').forEach(el => el.classList.add('hide-border'));
+                setTimeout(() => {
+                    document.querySelectorAll('.enemy').forEach(el => el.classList.remove('hide-border'));
+                }, 4000);
+            }
         }
 
         function createEnemy(x, y, forcedType = null) {
-            if(!isLive) return;
+            if(!isLive) return null;
             let type = forcedType;
             if(!type) {
                 const totalWeight = TYPES.reduce((a,b)=>a+b.weight, 0);
@@ -153,50 +193,51 @@
             
             if(x === undefined) {
                 let side = Math.floor(Math.random()*4);
-                if(side===0){ x=Math.random()*innerWidth; y=-150; }
-                else if(side===1){ x=innerWidth+150; y=Math.random()*innerHeight; }
-                else if(side===2){ x=Math.random()*innerWidth; y=innerHeight+150; }
-                else { x=-150; y=Math.random()*innerHeight; }
+                if(side===0){ x=Math.random()*innerWidth; y=-100; }
+                else if(side===1){ x=innerWidth+100; y=Math.random()*innerHeight; }
+                else if(side===2){ x=Math.random()*innerWidth; y=innerHeight+100; }
+                else { x=-100; y=Math.random()*innerHeight; }
             }
 
-            const state = { x, y, hp: type.hp, maxHp: type.hp, speed: baseSpeed * (type.speed || 1), id: type.id, radius: type.size/2, blinkCount: 0, isEscaping: false };
-            
+            const state = { x, y, hp: type.hp || 1, maxHp: type.hp || 1, speed: (type.id==='clone'?2 : baseSpeed * (type.speed || 1)), id: type.id, radius: type.size/2, isEscaping: false };
+            el.state = state;
+
             const hit = (e) => {
                 e.preventDefault();
                 if(state.id === 'heal') { el.remove(); return; }
                 hitSound.currentTime=0; hitSound.play();
-
                 if(state.id === 'coward') { state.isEscaping = !state.isEscaping; el.style.opacity = state.isEscaping ? "0.6" : "1"; return; }
-                if(state.id === 'blink' && state.blinkCount < 1) { state.blinkCount++; state.x = innerWidth - state.x; state.y = innerHeight - state.y; return; }
 
                 state.hp--;
-                
-                // BOSS 血條即時反饋
-                if(state.id === 'boss') {
-                    const pct = (state.hp / state.maxHp) * 100;
-                    document.getElementById('boss-hp-inner').style.width = pct + '%';
-                }
+                if(state.id === 'boss') document.getElementById('boss-hp-inner').style.width = (state.hp/30)*100 + '%';
 
                 if(state.hp <= 0) {
                     if(state.id === 'build') applyShield();
-                    if(state.id === 'greed') { score += 500; document.querySelectorAll('.t-normal').forEach(n => n.remove()); }
-                    if(state.id === 'split') { createEnemy(state.x+25, state.y, TYPES[0]); createEnemy(state.x-25, state.y, TYPES[0]); }
-                    score += (state.id === 'boss' ? 5000 : 10);
+                    if(state.id === 'greed') { score += 500; clearMinions(); }
+                    score += (state.id === 'boss' ? 5000 : (state.id==='clone'?2:10));
                     document.getElementById('score-text').innerText = `分數: ${score}`;
                     if(state.id === 'boss') victory();
+                    if(el.laser) el.laser.remove();
                     el.remove();
                 }
             };
             el.addEventListener('touchstart', hit); el.addEventListener('mousedown', hit);
             stage.appendChild(el);
 
+            if(state.id === 'sniper') runSniperLogic(el, state);
+            else runMoveLogic(el, state);
+            return el;
+        }
+
+        function runMoveLogic(el, state) {
             const move = () => {
                 if(!isLive || !el.parentNode) return;
                 const tx = innerWidth/2, ty = innerHeight/2;
                 let dx = tx - state.x, dy = ty - state.y, d = Math.sqrt(dx*dx+dy*dy);
                 
                 if(d < (state.id === 'boss' ? 85 : 25)) { 
-                    if(state.id === 'heal') healPlayer(); else takeDamage();
+                    if(state.id === 'heal' || state.id === 'clone') healPlayer(); 
+                    else takeDamage();
                     el.remove(); return; 
                 }
 
@@ -204,12 +245,14 @@
                 if(state.id === 'coward' && state.isEscaping) {
                     vx = -(dx/d) * state.speed * 2.0; vy = -(dy/d) * state.speed * 2.0;
                     if(state.x < -120 || state.x > innerWidth+120 || state.y < -120 || state.y > innerHeight+120) { el.remove(); return; }
-                } else if(state.id === 'heal' || state.id === 'ghost') {
-                    const rot = (state.id === 'heal') ? 0.04 : 0.05;
-                    const shrink = (state.id === 'heal') ? 0.8 : state.speed;
-                    const angle = Math.atan2(dy, dx) + rot;
-                    vx = (tx - Math.cos(angle) * (d - shrink)) - state.x;
-                    vy = (ty - Math.sin(angle) * (d - shrink)) - state.y;
+                } else if(state.id === 'clone') {
+                    // 分身不規則移動
+                    vx = (dx/d)*state.speed + (Math.random()-0.5)*4;
+                    vy = (dy/d)*state.speed + (Math.random()-0.5)*4;
+                } else if(state.id === 'heal') {
+                    const angle = Math.atan2(dy, dx) + 0.04;
+                    vx = (tx - Math.cos(angle) * (d - 0.8)) - state.x;
+                    vy = (ty - Math.sin(angle) * (d - 0.8)) - state.y;
                 } else {
                     vx = (dx/d) * state.speed; vy = (dy/d) * state.speed;
                 }
@@ -222,6 +265,40 @@
             requestAnimationFrame(move);
         }
 
+        function runSniperLogic(el, state) {
+            const tx = innerWidth/2, ty = innerHeight/2;
+            const laser = document.createElement('div');
+            laser.className = 'laser';
+            stage.appendChild(laser);
+            el.laser = laser;
+
+            const process = async () => {
+                while(isLive && el.parentNode) {
+                    laser.style.left = state.x + 'px';
+                    laser.style.top = state.y + 'px';
+                    laser.style.width = Math.sqrt((tx-state.x)**2 + (ty-state.y)**2) + 'px';
+                    laser.style.transform = `rotate(${Math.atan2(ty - state.y, tx - state.x)}rad)`;
+                    
+                    await new Promise(r => setTimeout(r, 1000));
+                    if(!el.parentNode) break;
+                    laser.classList.add('laser-charge');
+                    await new Promise(r => setTimeout(r, 2000));
+                    
+                    if(isLive && el.parentNode) {
+                        takeDamage();
+                        laser.classList.remove('laser-charge');
+                        state.x = Math.random() * (innerWidth-100) + 50;
+                        state.y = Math.random() * (innerHeight-100) + 50;
+                        el.style.left = state.x - state.radius + 'px';
+                        el.style.top = state.y - state.radius + 'px';
+                    }
+                }
+                laser.remove();
+            };
+            process();
+        }
+
+        function spawnHealer() { if(isLive) createEnemy(undefined, undefined, { id:'heal', hp:1, speed:0.5, size:35, class:'t-heal' }); }
         function applyShield() { hasShield = true; document.getElementById('safe-zone').classList.add('shielded'); }
         function healPlayer() { if(playerHP < 3) { document.getElementsByClassName('hp-heart')[playerHP].style.opacity = "1"; playerHP++; } }
         function takeDamage() {
@@ -230,90 +307,8 @@
             if(document.getElementsByClassName('hp-heart')[playerHP]) document.getElementsByClassName('hp-heart')[playerHP].style.opacity = "0.2";
             if(playerHP <= 0) endGame();
         }
-        function spawnController() { if(!isLive) return; createEnemy(); setTimeout(spawnController, spawnRate); }
-        function victory() { isLive = false; showEnd("🏆 任務成功"); }
-        function endGame() { isLive = false; showEnd("🚫 任務失敗"); }
-        function showEnd(title) {
-            const sec = Math.floor((Date.now()-startTime)/1000);
-            document.getElementById('end-title').innerText = title;
-            document.getElementById('final-stats').innerHTML = `得分：${score}<br>生存：${sec} 秒`;
-            document.getElementById('end-ui').style.display = 'flex';
-        }
-    </script>
-</body>
-</html>
-xt').innerText = `分數: ${score}`;
-                    if(state.id === 'boss') victory();
-                    el.remove();
-                }
-            };
-            el.addEventListener('touchstart', hit); el.addEventListener('mousedown', hit);
-            stage.appendChild(el);
-
-            const move = () => {
-                if(!isLive || !el.parentNode) return;
-                const tx = innerWidth/2, ty = innerHeight/2;
-                let dx = tx - state.x, dy = ty - state.y, d = Math.sqrt(dx*dx+dy*dy);
-                
-                if(d < (state.id === 'boss' ? 80 : 25)) { 
-                    if(state.id === 'heal') { healPlayer(); }
-                    else { takeDamage(); }
-                    el.remove(); return; 
-                }
-
-                let vx, vy;
-                
-                if(state.id === 'coward') {
-                    if(state.isEscaping) {
-                        vx = -(dx/d) * state.speed * 2.0; 
-                        vy = -(dy/d) * state.speed * 2.0;
-                        // 抵達邊界消失
-                        if(state.x < -120 || state.x > innerWidth+120 || state.y < -120 || state.y > innerHeight+120) {
-                            el.remove(); return;
-                        }
-                    } else {
-                        vx = (dx/d) * state.speed; vy = (dy/d) * state.speed;
-                    }
-                } else if(state.id === 'heal' || state.id === 'ghost') {
-                    const rot = (state.id === 'heal') ? 0.04 : 0.05;
-                    const shrink = (state.id === 'heal') ? 0.8 : state.speed;
-                    const angle = Math.atan2(dy, dx) + rot;
-                    const nextX = tx - Math.cos(angle) * (d - shrink);
-                    const nextY = ty - Math.sin(angle) * (d - shrink);
-                    vx = nextX - state.x; vy = nextY - state.y;
-                } else {
-                    vx = (dx/d) * state.speed; vy = (dy/d) * state.speed;
-                    if(state.id === 'normal' && d > 100) {
-                        const wave = Math.sin(Date.now()*0.005 + state.seed) * 1.5;
-                        vx += -(dy/d)*wave; vy += (dx/d)*wave;
-                    }
-                }
-
-                state.x += vx; state.y += vy;
-                el.style.left = (state.x - state.radius)+'px';
-                el.style.top = (state.y - state.radius)+'px';
-                requestAnimationFrame(move);
-            };
-            requestAnimationFrame(move);
-        }
-
-        function applyShield() { hasShield = true; document.getElementById('safe-zone').classList.add('shielded'); }
-        function healPlayer() {
-            if(playerHP < 3) {
-                const hearts = document.getElementsByClassName('hp-heart');
-                hearts[playerHP].style.opacity = "1";
-                playerHP++;
-            }
-        }
-        function takeDamage() {
-            if(hasShield) { hasShield = false; document.getElementById('safe-zone').classList.remove('shielded'); return; }
-            playerHP--;
-            const hearts = document.getElementsByClassName('hp-heart');
-            if(hearts[playerHP]) hearts[playerHP].style.opacity = "0.2";
-            if(playerHP <= 0) endGame();
-        }
-        function spawnController() { if(!isLive) return; createEnemy(); setTimeout(spawnController, spawnRate); }
-        function victory() { isLive = false; showEnd("🏆 任務成功"); }
+        function spawnController() { if(isLive) { createEnemy(); setTimeout(spawnController, spawnRate); } }
+        function victory() { isLive = false; showEnd("🏆 皇已駕崩！"); }
         function endGame() { isLive = false; showEnd("🚫 任務失敗"); }
         function showEnd(title) {
             const sec = Math.floor((Date.now()-startTime)/1000);
