@@ -3,21 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>喀爾文：核心保衛戰 v4.6</title>
+    <title>喀爾文：膽小者的撤退 v4.8</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; touch-action: manipulation; color: white; }
         #game-stage { position: relative; width: 100vw; height: 100vh; background: radial-gradient(circle, #1a1a2e 0%, #000 100%); overflow: hidden; }
-        
-        #safe-zone { 
-            position: absolute; top: 50%; left: 50%; 
-            width: 50px; height: 50px; margin: -25px 0 0 -25px; 
-            z-index: 10; background-image: url('safe.jpg'); background-size: cover; 
-            border-radius: 50%; border: 2px solid #f1c40f; box-shadow: 0 0 15px #f1c40f;
-            transition: all 0.3s;
-        }
-        /* 護盾特效 */
+        #safe-zone { position: absolute; top: 50%; left: 50%; width: 50px; height: 50px; margin: -25px 0 0 -25px; z-index: 10; background-image: url('safe.jpg'); background-size: cover; border-radius: 50%; border: 2px solid #f1c40f; box-shadow: 0 0 15px #f1c40f; transition: all 0.3s; }
         #safe-zone.shielded { border: 5px solid #3498db; box-shadow: 0 0 30px #3498db; transform: scale(1.2); }
-
         .enemy { position: absolute; border-radius: 50%; background-size: cover; background-position: center; z-index: 5; }
         .t-normal { border: 2px solid #fff; }
         .t-tank { border: 4px solid #f1c40f; }
@@ -26,19 +17,17 @@
         .t-split { border: 2px solid #2ecc71; }
         .t-blink { border: 2px solid #9b59b6; } 
         .t-heal { border: 3px solid #2ecc71; box-shadow: 0 0 15px #2ecc71; }
-        .t-build { border: 3px solid #a36629; } /* 建築 */
-        .t-greed { border: 4px solid #e91e63; box-shadow: 0 0 20px #e91e63; } /* 貪婪 */
+        .t-build { border: 3px solid #a36629; }
+        .t-greed { border: 4px solid #e91e63; box-shadow: 0 0 20px #e91e63; }
+        .t-coward { border: 3px solid #f39c12; } /* 膽小喀爾文 */
         .t-boss { border: 6px solid #ff4757; box-shadow: 0 0 40px #ff4757; }
-        
         #ui-layer { position: absolute; top: 15px; width: 100%; text-align: center; pointer-events: none; z-index: 20; }
         .hp-heart { font-size: 24px; color: #ff4757; margin: 0 5px; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; z-index: 100; padding: 20px; box-sizing: border-box; overflow-y: auto; }
-        .guide { width: 100%; max-width: 400px; background: #222; padding: 15px; border-radius: 15px; font-size: 13px; margin: 15px 0; text-align: left; }
-        .guide-item { display: flex; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #333; padding-bottom: 6px; }
-        .g-img { width: 30px; height: 30px; border-radius: 50%; background-image: url('12672.jpg'); background-size: cover; margin-right: 12px; flex-shrink: 0; }
-        .btn { padding: 14px 60px; background: #f1c40f; color: #000; border: none; border-radius: 50px; font-size: 18px; font-weight: bold; cursor: pointer; }
-        #boss-hp-bar { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); width: 70%; height: 8px; background: #333; display: none; }
-        #boss-hp-inner { width: 100%; height: 100%; background: #ff4757; }
+        .guide { width: 100%; max-width: 420px; background: #222; padding: 15px; border-radius: 15px; font-size: 12px; margin: 10px 0; text-align: left; }
+        .guide-item { display: flex; align-items: center; margin-bottom: 6px; border-bottom: 1px solid #333; padding-bottom: 4px; }
+        .g-img { width: 25px; height: 25px; border-radius: 50%; background-image: url('12672.jpg'); background-size: cover; margin-right: 10px; flex-shrink: 0; }
+        .btn { padding: 12px 60px; background: #f1c40f; color: #000; border: none; border-radius: 50px; font-size: 18px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -46,29 +35,30 @@
     <div id="game-stage">
         <div id="ui-layer">
             <div id="hp-display"><span class="hp-heart">❤️</span><span class="hp-heart">❤️</span><span class="hp-heart">❤️</span></div>
-            <div id="score-text" style="font-size:20px;">分數: 0</div>
+            <div id="score-text">分數: 0</div>
             <div id="timer-text">時間: 0s</div>
         </div>
-        <div id="boss-hp-bar"><div id="boss-hp-inner"></div></div>
+        <div id="boss-hp-bar" style="position:fixed; top:80px; left:50%; transform:translateX(-50%); width:70%; height:8px; background:#333; display:none; z-index:30;"><div id="boss-hp-inner" style="width:100%; height:100%; background:#ff4757;"></div></div>
         <div id="safe-zone"></div>
     </div>
 
     <div id="start-ui" class="overlay">
-        <h2 style="color:#f1c40f; margin-top:0;">喀爾文保衛戰 v4.6</h2>
+        <h2 style="color:#f1c40f; margin: 5px 0;">喀爾文保衛戰 v4.8</h2>
         <div class="guide">
-            <div class="guide-item"><div class="g-img" style="border:1px solid #fff"></div><div><b>普通 / 衝刺：</b>基礎戰力，衝刺種速度較快。</div></div>
-            <div class="guide-item"><div class="g-img" style="border:2px solid #2ecc71; width:20px; height:20px;"></div><div><b style="color:#2ecc71;">天使 (補血)：</b><b style="color:#ff4757;">不可點擊！</b>讓它撞擊核心來回血。</div></div>
-            <div class="guide-item"><div class="g-img" style="border:2px solid #a36629;"></div><div><b>建築：</b>擊殺後獲得一次性抵擋傷害的護盾。</div></div>
+            <div class="guide-item"><div class="g-img" style="border:1px solid #fff"></div><div><b>普通 / 衝刺：</b>基礎戰力。衝刺種速度快。</div></div>
+            <div class="guide-item"><div class="g-img" style="border:2px solid #2ecc71; width:18px; height:18px;"></div><div><b style="color:#2ecc71;">天使 (補血)：</b><b style="color:#ff4757;">不可點擊！</b>撞擊核心可回血。</div></div>
+            <div class="guide-item"><div class="g-img" style="border:2px solid #f39c12;"></div><div><b>膽小：</b>點擊會使其逃向邊緣；<b>逃跑時若再被點擊會轉身衝向核心。</b>逃至邊緣則消失。</div></div>
+            <div class="guide-item"><div class="g-img" style="border:2px solid #a36629;"></div><div><b>建築：</b>擊殺後獲得抵擋一次傷害的護盾。</div></div>
             <div class="guide-item"><div class="g-img" style="border:2px solid #e91e63;"></div><div><b>貪婪：</b>擊殺獲高分並清除場上所有普通種。</div></div>
-            <div class="guide-item"><div class="g-img" style="border:1px solid #9b59b6"></div><div><b>傳送：</b>點擊後會從對角重生，須擊殺兩次。</div></div>
-            <div class="guide-item"><div class="g-img" style="border:2px solid #f1c40f; width:35px; height:35px;"></div><div><b>坦克 / BOSS：</b>高血量單位，需多次點擊。</div></div>
+            <div class="guide-item"><div class="g-img" style="border:1px solid #9b59b6"></div><div><b>傳送：</b>重生於對角。<b>分裂：</b>死後一分為二。</div></div>
+            <div class="guide-item"><div class="g-img" style="border:1px solid #fff; opacity:0.3"></div><div><b>鬼魂：</b>繞圈逼近。<b>坦克/BOSS：</b>多血量單位。</div></div>
         </div>
-        <button class="btn" onclick="startGame()">開始執行保衛任務</button>
+        <button class="btn" onclick="startGame()">開始執行任務</button>
     </div>
 
     <div id="end-ui" class="overlay" style="display:none; justify-content:center;">
-        <h1 id="end-title" style="color:#ff4757">任務失敗</h1>
-        <p id="final-stats" style="font-size: 22px; line-height: 2;"></p>
+        <h1 id="end-title" style="color:#ff4757">防線崩潰</h1>
+        <p id="final-stats" style="font-size: 20px;"></p>
         <button class="btn" onclick="location.reload()">重新整備</button>
     </div>
 
@@ -82,14 +72,15 @@
         const hitSound = document.getElementById('hit-sound');
 
         const TYPES = [
-            { id:'normal', hp:1, speed:1.0, size:60, weight:45, class:'t-normal' },
-            { id:'tank', hp:4, speed:0.4, size:110, weight:10, class:'t-tank' },
-            { id:'speed', hp:1, speed:1.6, size:50, weight:15, class:'t-speed' }, 
+            { id:'normal', hp:1, speed:1.0, size:60, weight:40, class:'t-normal' },
+            { id:'tank', hp:4, speed:0.4, size:110, weight:8, class:'t-tank' },
+            { id:'speed', hp:1, speed:1.6, size:50, weight:12, class:'t-speed' }, 
             { id:'split', hp:1, speed:0.8, size:65, weight:8, class:'t-split' },
             { id:'blink', hp:1, speed:1.0, size:60, weight:8, class:'t-blink' },
             { id:'ghost', hp:1, speed:0.9, size:60, weight:8, class:'t-ghost' },
             { id:'build', hp:1, speed:0.7, size:65, weight:5, class:'t-build' },
-            { id:'greed', hp:1, speed:0.5, size:80, weight:3, class:'t-greed' }
+            { id:'greed', hp:1, speed:0.5, size:80, weight:3, class:'t-greed' },
+            { id:'coward', hp:999, speed:1.3, size:60, weight:8, class:'t-coward' }
         ];
 
         function startGame() {
@@ -106,8 +97,8 @@
             const sec = Math.floor((Date.now()-startTime)/1000);
             document.getElementById('timer-text').innerText = `時間: ${sec}s`;
             if (sec >= 90 && !bossActive) spawnBoss();
-            baseSpeed = Math.min(2.3, 1.0 + (sec/40)); 
-            spawnRate = Math.max(450, 1600 - (sec*12));
+            baseSpeed = Math.min(2.3, 1.0 + (sec/45)); 
+            spawnRate = Math.max(450, 1600 - (sec*10));
             setTimeout(updateStats, 1000);
         }
 
@@ -144,13 +135,27 @@
                 else { x=-150; y=Math.random()*innerHeight; }
             }
 
-            const state = { x, y, hp: type.hp, maxHp: type.hp, speed: baseSpeed * (type.speed || 1), seed: Math.random()*10, id: type.id, radius: type.size/2, blinkCount: 0 };
+            const state = { 
+                x, y, hp: type.hp, maxHp: type.hp, 
+                speed: baseSpeed * (type.speed || 1), 
+                seed: Math.random()*10, id: type.id, 
+                radius: type.size/2, blinkCount: 0,
+                isEscaping: false // 膽小喀爾文狀態
+            };
             
             const hit = (e) => {
                 e.preventDefault();
-                if(state.id === 'heal') { el.remove(); return; } // 天使被點掉不補血
-                
+                if(state.id === 'heal') { el.remove(); return; }
                 hitSound.currentTime=0; hitSound.play();
+
+                if(state.id === 'coward') {
+                    // 膽小喀爾文邏輯：切換狀態
+                    state.isEscaping = !state.isEscaping;
+                    // 切換視覺提示：逃跑時稍微變透明
+                    el.style.opacity = state.isEscaping ? "0.6" : "1";
+                    return;
+                }
+
                 if(state.id === 'blink' && state.blinkCount < 1) {
                     state.blinkCount++;
                     state.x = innerWidth - state.x; state.y = innerHeight - state.y;
@@ -162,10 +167,9 @@
                     if(state.id === 'build') applyShield();
                     if(state.id === 'greed') { 
                         score += 500; 
-                        document.querySelectorAll('.t-normal').forEach(e => e.remove());
+                        document.querySelectorAll('.t-normal').forEach(node => node.remove());
                     }
                     if(state.id === 'split') { createEnemy(state.x+25, state.y, TYPES[0]); createEnemy(state.x-25, state.y, TYPES[0]); }
-                    
                     score += (state.id === 'boss' ? 5000 : 10);
                     document.getElementById('score-text').innerText = `分數: ${score}`;
                     if(state.id === 'boss') victory();
@@ -175,7 +179,6 @@
             el.addEventListener('touchstart', hit); el.addEventListener('mousedown', hit);
             stage.appendChild(el);
 
-            let t = 0;
             const move = () => {
                 if(!isLive || !el.parentNode) return;
                 const tx = innerWidth/2, ty = innerHeight/2;
@@ -187,38 +190,43 @@
                     el.remove(); return; 
                 }
 
-                let vx = (dx/d) * state.speed, vy = (dy/d) * state.speed;
-
-                if(state.id === 'normal' && d > 100) {
-                    const wave = Math.sin(t*0.08 + state.seed) * 1.5;
-                    vx += -(dy/d)*wave; vy += (dx/d)*wave;
-                } else if(state.id === 'ghost') {
-                    const angle = Math.atan2(dy, dx) + 0.05;
-                    const nextX = tx - Math.cos(angle) * (d - state.speed);
-                    const nextY = ty - Math.sin(angle) * (d - state.speed);
-                    vx = nextX - state.x; vy = nextY - state.y;
-                } else if(state.id === 'heal') {
-                    // 修正補血天使：向心螺旋路徑
-                    const angle = Math.atan2(dy, dx) + 0.04;
-                    const shrink = 0.8; // 每步向中心移動的距離
+                let vx, vy;
+                
+                if(state.id === 'coward') {
+                    if(state.isEscaping) {
+                        vx = -(dx/d) * state.speed * 2.0; 
+                        vy = -(dy/d) * state.speed * 2.0;
+                        // 抵達邊界消失
+                        if(state.x < -120 || state.x > innerWidth+120 || state.y < -120 || state.y > innerHeight+120) {
+                            el.remove(); return;
+                        }
+                    } else {
+                        vx = (dx/d) * state.speed; vy = (dy/d) * state.speed;
+                    }
+                } else if(state.id === 'heal' || state.id === 'ghost') {
+                    const rot = (state.id === 'heal') ? 0.04 : 0.05;
+                    const shrink = (state.id === 'heal') ? 0.8 : state.speed;
+                    const angle = Math.atan2(dy, dx) + rot;
                     const nextX = tx - Math.cos(angle) * (d - shrink);
                     const nextY = ty - Math.sin(angle) * (d - shrink);
                     vx = nextX - state.x; vy = nextY - state.y;
+                } else {
+                    vx = (dx/d) * state.speed; vy = (dy/d) * state.speed;
+                    if(state.id === 'normal' && d > 100) {
+                        const wave = Math.sin(Date.now()*0.005 + state.seed) * 1.5;
+                        vx += -(dy/d)*wave; vy += (dx/d)*wave;
+                    }
                 }
 
                 state.x += vx; state.y += vy;
                 el.style.left = (state.x - state.radius)+'px';
                 el.style.top = (state.y - state.radius)+'px';
-                t++; requestAnimationFrame(move);
+                requestAnimationFrame(move);
             };
             requestAnimationFrame(move);
         }
 
-        function applyShield() {
-            hasShield = true;
-            document.getElementById('safe-zone').classList.add('shielded');
-        }
-
+        function applyShield() { hasShield = true; document.getElementById('safe-zone').classList.add('shielded'); }
         function healPlayer() {
             if(playerHP < 3) {
                 const hearts = document.getElementsByClassName('hp-heart');
@@ -226,39 +234,20 @@
                 playerHP++;
             }
         }
-
         function takeDamage() {
-            if(hasShield) {
-                hasShield = false;
-                document.getElementById('safe-zone').classList.remove('shielded');
-                return; // 護盾抵消傷害
-            }
+            if(hasShield) { hasShield = false; document.getElementById('safe-zone').classList.remove('shielded'); return; }
             playerHP--;
             const hearts = document.getElementsByClassName('hp-heart');
             if(hearts[playerHP]) hearts[playerHP].style.opacity = "0.2";
             if(playerHP <= 0) endGame();
         }
-
-        function spawnController() {
-            if(!isLive) return;
-            createEnemy();
-            setTimeout(spawnController, spawnRate);
-        }
-
-        function victory() { 
-            isLive = false; 
-            showEnd("🏆 核心保衛成功！"); 
-        }
-
-        function endGame() { 
-            isLive = false; 
-            showEnd("🚫 任務失敗：防線潰散"); 
-        }
-
+        function spawnController() { if(!isLive) return; createEnemy(); setTimeout(spawnController, spawnRate); }
+        function victory() { isLive = false; showEnd("🏆 任務成功"); }
+        function endGame() { isLive = false; showEnd("🚫 任務失敗"); }
         function showEnd(title) {
             const sec = Math.floor((Date.now()-startTime)/1000);
             document.getElementById('end-title').innerText = title;
-            document.getElementById('final-stats').innerHTML = `分數：${score}<br>生存時間：${sec} 秒`;
+            document.getElementById('final-stats').innerHTML = `得分：${score}<br>生存：${sec} 秒`;
             document.getElementById('end-ui').style.display = 'flex';
         }
     </script>
