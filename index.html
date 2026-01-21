@@ -3,26 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>喀爾文：平衡進化 v4.4</title>
+    <title>喀爾文：核心保衛戰 v4.5</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; touch-action: manipulation; color: white; }
         #game-stage { position: relative; width: 100vw; height: 100vh; background: radial-gradient(circle, #1a1a2e 0%, #000 100%); overflow: hidden; }
         #safe-zone { position: absolute; top: 50%; left: 50%; width: 50px; height: 50px; margin: -25px 0 0 -25px; z-index: 10; background-image: url('safe.jpg'); background-size: cover; border-radius: 50%; border: 2px solid #f1c40f; box-shadow: 0 0 15px #f1c40f; }
-        .enemy { position: absolute; border-radius: 50%; background-size: cover; background-position: center; z-index: 5; transition: transform 0.1s; }
+        .enemy { position: absolute; border-radius: 50%; background-size: cover; background-position: center; z-index: 5; }
         .t-normal { border: 2px solid #fff; }
         .t-tank { border: 4px solid #f1c40f; }
         .t-speed { border: 2px solid #3498db; }
         .t-ghost { opacity: 0.3; border: 1px solid #fff; }
         .t-split { border: 2px solid #2ecc71; }
-        .t-blink { border: 2px solid #9b59b6; box-shadow: 0 0 10px #9b59b6; } 
-        .t-heal { border: 3px solid #2ecc71; box-shadow: 0 0 20px #2ecc71; filter: brightness(1.5); }
+        .t-blink { border: 2px solid #9b59b6; } 
+        .t-heal { border: 3px solid #2ecc71; box-shadow: 0 0 15px #2ecc71; filter: brightness(1.2); }
         .t-boss { border: 6px solid #ff4757; box-shadow: 0 0 40px #ff4757; }
+        
+        /* UI 樣式 */
         #ui-layer { position: absolute; top: 15px; width: 100%; text-align: center; pointer-events: none; z-index: 20; }
-        .hp-heart { font-size: 24px; color: #ff4757; margin: 0 5px; transition: opacity 0.3s; }
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; z-index: 100; padding: 20px; box-sizing: border-box; }
-        .btn { padding: 12px 50px; background: #f1c40f; color: #000; border: none; border-radius: 50px; font-size: 18px; font-weight: bold; }
-        #boss-hp-bar { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); width: 70%; height: 8px; background: #333; border-radius: 4px; display: none; }
-        #boss-hp-inner { width: 100%; height: 100%; background: #ff4757; border-radius: 4px; }
+        .hp-heart { font-size: 24px; color: #ff4757; margin: 0 5px; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; z-index: 100; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        .guide { width: 100%; max-width: 380px; background: #222; padding: 15px; border-radius: 15px; font-size: 13px; margin: 15px 0; text-align: left; }
+        .guide-item { display: flex; align-items: center; margin-bottom: 6px; border-bottom: 1px solid #333; padding-bottom: 4px; }
+        .g-img { width: 25px; height: 25px; border-radius: 50%; background-image: url('12672.jpg'); background-size: cover; margin-right: 10px; flex-shrink: 0; }
+        .btn { padding: 12px 60px; background: #f1c40f; color: #000; border: none; border-radius: 50px; font-size: 18px; font-weight: bold; cursor: pointer; }
+        #boss-hp-bar { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); width: 70%; height: 8px; background: #333; display: none; }
+        #boss-hp-inner { width: 100%; height: 100%; background: #ff4757; }
     </style>
 </head>
 <body>
@@ -38,44 +43,50 @@
     </div>
 
     <div id="start-ui" class="overlay">
-        <h1 style="color:#f1c40f">喀爾文保衛戰 v4.4</h1>
-        <p>平衡性更新：新增回血怪與速度上限</p>
-        <button class="btn" onclick="startGame()">立即開戰</button>
+        <h2 style="color:#f1c40f; margin: 5px 0;">喀爾文保衛戰 v4.5</h2>
+        <div class="guide">
+            <div class="guide-item"><div class="g-img" style="border:1px solid #fff"></div><div><b>普通：</b>會蛇行，最基礎的敵人。</div></div>
+            <div class="guide-item"><div class="g-img" style="border:1px solid #3498db; width:20px; height:20px;"></div><div><b>衝刺：</b>體積稍大且速度變快。</div></div>
+            <div class="guide-item"><div class="g-img" style="border:1px solid #9b59b6"></div><div><b>傳送：</b>點擊後會從對角線重生。</div></div>
+            <div class="guide-item"><div class="g-img" style="border:1px solid #fff; opacity:0.3"></div><div><b>鬼魂：</b>繞圈逼近核心。</div></div>
+            <div class="guide-item"><div class="g-img" style="border:2px solid #2ecc71; width:18px; height:18px;"></div><div><b style="color:#2ecc71;">補血(天使)：</b><b style="color:#ff4757;">不可殺！</b>讓它撞擊中心可回血。</div></div>
+            <div class="guide-item"><div class="g-img" style="border:2px solid #f1c40f; width:35px; height:35px;"></div><div><b>坦克：</b>血量極高，點擊 4 次。</div></div>
+        </div>
+        <button class="btn" onclick="startGame()">確認情報並開戰</button>
     </div>
 
     <div id="end-ui" class="overlay" style="display:none; justify-content:center;">
         <h1 id="end-title">防線崩潰</h1>
-        <p id="final-stats"></p>
         <button class="btn" onclick="location.reload()">重新整備</button>
     </div>
 
-    <audio id="bgm" src="bgm.mp3" loop></audio>
-    <audio id="hit-sound" src="hit.mp3"></audio>
+    <audio id="bgm" src="bgm.mp3" loop preload="auto"></audio>
+    <audio id="hit-sound" src="hit.mp3" preload="auto"></audio>
 
     <script>
-        let score = 0, playerHP = 3, isLive = false, startTime, baseSpeed = 0.7, spawnRate = 1600, bossActive = false;
+        let score = 0, playerHP = 3, isLive = false, startTime, baseSpeed = 1.0, spawnRate = 1600, bossActive = false;
         const stage = document.getElementById('game-stage');
         const bgm = document.getElementById('bgm');
         const hitSound = document.getElementById('hit-sound');
 
-        const MAX_SPEED_CAP = 4.5; // 全域速度上限
-
         const TYPES = [
             { id:'normal', hp:1, speed:1.0, size:60, weight:50, class:'t-normal' },
             { id:'tank', hp:4, speed:0.4, size:110, weight:15, class:'t-tank' },
-            { id:'speed', hp:1, speed:1.4, size:40, weight:15, class:'t-speed' }, // 降速
+            { id:'speed', hp:1, speed:1.6, size:50, weight:15, class:'t-speed' }, 
             { id:'split', hp:1, speed:0.8, size:65, weight:10, class:'t-split' },
             { id:'blink', hp:1, speed:1.0, size:60, weight:10, class:'t-blink' },
             { id:'ghost', hp:1, speed:0.9, size:60, weight:10, class:'t-ghost' }
         ];
 
         function startGame() {
-            document.getElementById('start-ui').remove();
-            isLive = true; startTime = Date.now();
+            // 音樂即時播放
             bgm.play().catch(()=>{});
+            document.getElementById('start-ui').remove();
+            isLive = true; 
+            startTime = Date.now();
             spawnController();
             updateStats();
-            setInterval(spawnHealer, 30000); // 每30秒生成補血怪
+            setInterval(spawnHealer, 30000); 
         }
 
         function updateStats() {
@@ -84,21 +95,20 @@
             document.getElementById('timer-text').innerText = `時間: ${sec}s`;
             if (sec >= 90 && !bossActive) spawnBoss();
             
-            // 速度上限邏輯
-            baseSpeed = Math.min(2.0, 0.7 + (sec/30)); 
-            spawnRate = Math.max(500, 1600 - (sec*10));
+            baseSpeed = Math.min(2.2, 1.0 + (sec/35)); 
+            spawnRate = Math.max(450, 1600 - (sec*12));
             setTimeout(updateStats, 1000);
         }
 
         function spawnHealer() {
             if(!isLive) return;
-            createEnemy(undefined, undefined, { id:'heal', hp:1, speed:0.5, size:70, class:'t-heal' });
+            createEnemy(undefined, undefined, { id:'heal', hp:1, speed:0.6, size:35, class:'t-heal' });
         }
 
         function spawnBoss() {
             bossActive = true;
             document.getElementById('boss-hp-bar').style.display = 'block';
-            createEnemy(innerWidth/2, -200, { id:'boss', hp:40, speed:0.1, size:220, class:'t-boss' });
+            createEnemy(innerWidth/2, -200, { id:'boss', hp:50, speed:0.1, size:220, class:'t-boss' });
         }
 
         function createEnemy(x, y, forcedType = null) {
@@ -123,20 +133,25 @@
                 else { x=-150; y=Math.random()*innerHeight; }
             }
 
-            const state = { x, y, hp: type.hp, maxHp: type.hp, speed: Math.min(MAX_SPEED_CAP, baseSpeed * (type.speed || 1)), seed: Math.random()*10, id: type.id, radius: type.size/2, blinkCount: 0 };
+            const state = { x, y, hp: type.hp, maxHp: type.hp, speed: baseSpeed * (type.speed || 1), seed: Math.random()*10, id: type.id, radius: type.size/2, blinkCount: 0 };
             
             const hit = (e) => {
-                e.preventDefault(); hitSound.currentTime=0; hitSound.play();
+                e.preventDefault();
+                if(state.id === 'heal') {
+                    // 點到補血怪 -> 處罰：直接消失但不補血
+                    el.style.transform = "scale(0)";
+                    setTimeout(()=>el.remove(), 100);
+                    return;
+                }
                 
-                if(state.id === 'blink' && state.blinkCount < 1) { // 瞬移機制重做
+                hitSound.currentTime=0; hitSound.play();
+                if(state.id === 'blink' && state.blinkCount < 1) {
                     state.blinkCount++;
-                    state.x = innerWidth - state.x; state.y = innerHeight - state.y; // 傳送到對角線
+                    state.x = innerWidth - state.x; state.y = innerHeight - state.y;
                     return;
                 }
 
                 state.hp--;
-                if(state.id === 'heal') healPlayer();
-
                 if(state.hp <= 0) {
                     if(state.id === 'split') { createEnemy(state.x+20, state.y, TYPES[0]); createEnemy(state.x-20, state.y, TYPES[0]); }
                     score += (state.id === 'boss' ? 2000 : 10);
@@ -154,25 +169,30 @@
                 const tx = innerWidth/2, ty = innerHeight/2;
                 let dx = tx - state.x, dy = ty - state.y, d = Math.sqrt(dx*dx+dy*dy);
                 
-                if(d < (state.id === 'boss' ? 70 : 25)) { takeDamage(); el.remove(); return; }
+                if(d < (state.id === 'boss' ? 70 : 25)) { 
+                    if(state.id === 'heal') { healPlayer(); }
+                    else { takeDamage(); }
+                    el.remove(); return; 
+                }
 
                 let vx = (dx/d) * state.speed, vy = (dy/d) * state.speed;
 
-                if(state.id === 'normal' && d > 100) { // 普通蛇行
+                if(state.id === 'normal' && d > 100) {
                     const wave = Math.sin(t*0.08 + state.seed) * 1.5;
                     vx += -(dy/d)*wave; vy += (dx/d)*wave;
-                } else if(state.id === 'ghost') { // 鬼魂繞圈
+                } else if(state.id === 'ghost') {
                     const orbitRadius = d;
-                    const angle = Math.atan2(dy, dx) + 0.05; // 旋轉速度
+                    const angle = Math.atan2(dy, dx) + 0.05;
                     const nextX = tx - Math.cos(angle) * (orbitRadius - state.speed);
                     const nextY = ty - Math.sin(angle) * (orbitRadius - state.speed);
                     vx = nextX - state.x; vy = nextY - state.y;
-                } else if(state.id === 'heal') { // 補血怪繞場
+                } else if(state.id === 'heal') {
                     const angle = t * 0.02;
-                    const orbit = 200 + Math.sin(t * 0.01) * 50;
+                    const orbit = 180 + Math.sin(t * 0.01) * 60;
                     const nx = tx + Math.cos(angle) * orbit;
                     const ny = ty + Math.sin(angle) * orbit;
-                    vx = (nx - state.x) * 0.1; vy = (ny - state.y) * 0.1;
+                    vx = (nx - state.x) * 0.05 + (dx/d)*0.3; // 緩慢靠近中心
+                    vy = (ny - state.y) * 0.05 + (dy/d)*0.3;
                 }
 
                 state.x += vx; state.y += vy;
@@ -189,12 +209,19 @@
                 hearts[playerHP].style.opacity = "1";
                 playerHP++;
             }
+            // 視覺反饋：安全區發綠光
+            const sz = document.getElementById('safe-zone');
+            sz.style.boxShadow = "0 0 30px #2ecc71";
+            setTimeout(()=>sz.style.boxShadow="0 0 15px #f1c40f", 500);
         }
 
         function takeDamage() {
             playerHP--;
             const hearts = document.getElementsByClassName('hp-heart');
             if(hearts[playerHP]) hearts[playerHP].style.opacity = "0.2";
+            const sz = document.getElementById('safe-zone');
+            sz.style.backgroundColor = "rgba(255, 71, 87, 0.5)";
+            setTimeout(()=>sz.style.backgroundColor="transparent", 200);
             if(playerHP <= 0) endGame();
         }
 
@@ -205,7 +232,7 @@
         }
 
         function victory() { isLive = false; document.getElementById('end-title').innerText = "🏆 守護成功！"; document.getElementById('end-ui').style.display = 'flex'; }
-        function endGame() { isLive = false; document.getElementById('end-ui').style.display = 'flex'; document.getElementById('final-stats').innerText = `分數: ${score}`; }
+        function endGame() { isLive = false; document.getElementById('end-ui').style.display = 'flex'; }
     </script>
 </body>
 </html>
