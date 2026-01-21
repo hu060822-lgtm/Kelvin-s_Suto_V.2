@@ -3,10 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>喀爾文：皇之怒 v5.1.4</title>
+    <title>喀爾文：日蝕狂暴 v5.1.5</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; touch-action: manipulation; color: white; }
-        #game-stage { position: relative; width: 100vw; height: 100vh; background: radial-gradient(circle, #1a1a2e 0%, #000 100%); overflow: hidden; }
+        #game-stage { position: relative; width: 100vw; height: 100vh; background: radial-gradient(circle, #1a1a2e 0%, #000 100%); overflow: hidden; transition: filter 0.5s; }
+        
+        /* 第二階段手電筒效果 */
+        #flashlight { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: radial-gradient(circle 120px at var(--x, 50%) var(--y, 50%), transparent 100%, rgba(0,0,0,0.95) 100%);
+            pointer-events: none; z-index: 100; display: none;
+        }
+
         #safe-zone { position: absolute; top: 50%; left: 50%; width: 50px; height: 50px; margin: -25px 0 0 -25px; z-index: 10; background-image: url('safe.jpg'); background-size: cover; border-radius: 50%; border: 2px solid #f1c40f; box-shadow: 0 0 15px #f1c40f; transition: all 0.3s; }
         #safe-zone.shielded { border: 5px solid #3498db; box-shadow: 0 0 30px #3498db; transform: scale(1.2); }
 
@@ -16,29 +24,29 @@
         .t-heal { border: 3px solid #2ecc71; box-shadow: 0 0 15px #2ecc71; }
         .t-coward { border: 3px solid #f39c12; }
         .t-build { border: 3px solid #a36629; }
-        .t-greed { border: 4px solid #e91e63; box-shadow: 0 0 20px #e91e63; }
+        .t-greed { border: 4px solid #e91e63; }
         .t-sniper { border: 3px solid #ff0000; box-shadow: 0 0 10px #ff0000; }
         .t-boss { border: 6px solid #ff4757; box-shadow: 0 0 40px #ff4757; }
+        .t-boss.phase2 { border-color: #ff0000; box-shadow: 0 0 60px #ff0000; animation: pulse 0.5s infinite; }
         .t-clone { border: 1px solid #ff4757; opacity: 0.7; }
         .hide-border { border: none !important; box-shadow: none !important; }
+
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        @keyframes shake { 0% { transform: translate(0,0); } 25% { transform: translate(5px,5px); } 50% { transform: translate(-5px,0); } 75% { transform: translate(5px,-5px); } 100% { transform: translate(0,0); } }
+        .shaking { animation: shake 0.2s infinite; }
 
         .laser { position: absolute; height: 2px; background: rgba(255, 0, 0, 0.4); transform-origin: left center; z-index: 4; pointer-events: none; display: none; }
         .laser-charge { animation: blink 0.5s infinite; background: rgba(255, 0, 0, 1); height: 3px; display: block; }
         @keyframes blink { 50% { opacity: 0; } }
 
-        #ui-layer { position: absolute; top: 15px; width: 100%; text-align: center; pointer-events: none; z-index: 20; }
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; z-index: 100; padding: 20px; box-sizing: border-box; overflow-y: auto; }
-        .guide { width: 100%; max-width: 500px; background: #222; padding: 15px; border-radius: 15px; font-size: 11px; margin: 10px 0; text-align: left; }
-        .guide-item { display: flex; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #333; padding-bottom: 5px; }
-        .g-icon { width: 25px; height: 25px; border-radius: 50%; background-image: url('12672.jpg'); background-size: cover; margin-right: 10px; flex-shrink: 0; }
-        
-        .vol-control { margin: 10px 0; background: #333; padding: 10px; border-radius: 10px; width: 80%; max-width: 300px; text-align: center; pointer-events: auto; }
-        .btn { padding: 12px 60px; background: #f1c40f; color: #000; border: none; border-radius: 50px; font-size: 18px; font-weight: bold; cursor: pointer; }
-        #boss-hp-bar { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); width: 70%; height: 12px; background: #333; display: none; z-index: 30; border: 2px solid #fff; border-radius: 6px; }
+        #ui-layer { position: absolute; top: 15px; width: 100%; text-align: center; pointer-events: none; z-index: 120; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; z-index: 200; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        .btn { padding: 12px 60px; background: #f1c40f; color: #000; border: none; border-radius: 50px; font-size: 18px; font-weight: bold; cursor: pointer; pointer-events: auto; }
+        #boss-hp-bar { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); width: 70%; height: 12px; background: #333; display: none; z-index: 110; border: 2px solid #fff; border-radius: 6px; }
         #boss-hp-inner { width: 100%; height: 100%; background: #ff4757; transition: width 0.2s; }
     </style>
 </head>
-<body>
+<body onmousemove="updateFlashlight(event)" ontouchmove="updateFlashlight(event)">
 
     <div id="game-stage">
         <div id="ui-layer">
@@ -46,32 +54,21 @@
             <div id="score-text">分數: 0</div>
             <div id="timer-text">時間: 0s</div>
         </div>
-        <div id="skill-announcement" style="position:fixed; top:130px; width:100%; text-align:center; color:#ff4757; font-weight:bold; font-size:24px; text-shadow: 0 0 10px #000; z-index:40;"></div>
+        <div id="skill-announcement" style="position:fixed; top:130px; width:100%; text-align:center; color:#ff4757; font-weight:bold; font-size:28px; text-shadow: 0 0 10px #000; z-index:150;"></div>
         <div id="boss-hp-bar"><div id="boss-hp-inner"></div></div>
         <div id="safe-zone"></div>
+        <div id="flashlight"></div>
     </div>
 
     <div id="start-ui" class="overlay">
-        <h2 style="color:#f1c40f; margin: 5px 0;">喀爾文保衛戰 v5.1.4</h2>
-        <div class="vol-control">
-            <label>🔊 音量: <span id="vol-pct">50</span>%</label><br>
-            <input type="range" id="global-vol" min="0" max="1" step="0.05" value="0.5" style="width:100%">
-        </div>
-        <div class="guide">
-            <div class="guide-item"><div class="g-icon" style="border:2px solid #fff"></div><div><b>普通/衝刺:</b> 基礎威脅，衝刺種移動較快。</div></div>
-            <div class="guide-item"><div class="g-icon" style="border:2px solid #ff0000"></div><div><b>狙擊手:</b> 跑到定點後架起紅雷射，3秒後造成傷害。</div></div>
-            <div class="guide-item"><div class="g-icon" style="border:2px solid #f39c12"></div><div><b>膽小者:</b> 被點擊會撤退，逃走就不會扣你血。</div></div>
-            <div class="guide-item"><div class="g-icon" style="border:2px solid #2ecc71"></div><div><b>天使:</b> 撞擊核心可回血。</div></div>
-            <div class="guide-item"><div class="g-icon" style="border:2px solid #a36629"></div><div><b>建築:</b> 殺死後獲得護盾。</div></div>
-            <div class="guide-item"><div class="g-icon" style="border:4px solid #ff4757; width:28px; height:28px;"></div><div><b>克爾文皇:</b> BOSS！90秒隨機側邊急速登場，每12秒狂放技能。</div></div>
-        </div>
-        <button class="btn" onclick="startGame()">開始作戰</button>
+        <h2 style="color:#f1c40f">喀爾文保衛戰 v5.1.5</h2>
+        <p style="color:#ff4757; font-weight:bold;">[警告] 皇之技能冷卻縮短至 6 秒 | 50% HP 開啟第二階段</p>
+        <button class="btn" onclick="startGame()">接受挑戰</button>
     </div>
 
     <div id="end-ui" class="overlay" style="display:none; justify-content:center;">
-        <h1 id="end-title" style="font-size: 40px;">戰鬥結束</h1>
-        <p id="final-score" style="font-size: 24px; color: #f1c40f;"></p>
-        <p id="final-time" style="font-size: 24px; color: #fff;"></p>
+        <h1 id="end-title"></h1>
+        <p id="final-stats" style="font-size:20px;"></p>
         <button class="btn" onclick="location.reload()">重新整備</button>
     </div>
 
@@ -80,26 +77,27 @@
     <audio id="hit-sound" src="hit.mp3"></audio>
 
     <script>
-        let score = 0, playerHP = 3, isLive = false, hasShield = false, startTime, spawnRate = 1200, bossActive = false, bossRef = null;
+        let score = 0, playerHP = 3, isLive = false, hasShield = false, startTime;
+        let spawnRate = 1200, bossActive = false, bossRef = null, bossPhase2 = false;
+        let skillInterval = 6000; // 初始 6 秒一次
+        let skillTimer = null;
+
         const stage = document.getElementById('game-stage');
         const bgm = document.getElementById('bgm');
         const bossBgm = document.getElementById('boss-bgm');
         const hitSound = document.getElementById('hit-sound');
-        const volSlider = document.getElementById('global-vol');
+        const flash = document.getElementById('flashlight');
 
-        const savedVol = localStorage.getItem('calvin_vol') || 0.5;
-        volSlider.value = savedVol;
-        document.getElementById('vol-pct').innerText = Math.round(savedVol * 100);
-        volSlider.oninput = () => {
-            const v = volSlider.value;
-            document.getElementById('vol-pct').innerText = Math.round(v * 100);
-            bgm.volume = v; bossBgm.volume = v; hitSound.volume = v;
-            localStorage.setItem('calvin_vol', v);
-        };
+        function updateFlashlight(e) {
+            const x = e.touches ? e.touches[0].clientX : e.clientX;
+            const y = e.touches ? e.touches[0].clientY : e.clientY;
+            flash.style.setProperty('--x', x + 'px');
+            flash.style.setProperty('--y', y + 'px');
+        }
 
         const TYPES = [
             { id:'normal', hp:1, speed:1.1, weight:40, class:'t-normal', size:60 },
-            { id:'speed', hp:1, speed:1.8, weight:15, class:'t-speed', size:50 }, 
+            { id:'speed', hp:1, speed:1.9, weight:15, class:'t-speed', size:50 }, 
             { id:'coward', hp:1, speed:1.4, weight:12, class:'t-coward', size:60 },
             { id:'build', hp:1, speed:0.8, weight:6, class:'t-build', size:65 },
             { id:'greed', hp:1, speed:0.6, weight:4, class:'t-greed', size:80 },
@@ -107,12 +105,11 @@
         ];
 
         function startGame() {
-            bgm.volume = volSlider.value; bossBgm.volume = volSlider.value; hitSound.volume = volSlider.value;
+            bgm.volume = 0.5; bossBgm.volume = 0.5; hitSound.volume = 0.5;
             bgm.play().catch(()=>{});
             document.getElementById('start-ui').remove();
             isLive = true; startTime = Date.now();
-            spawnController();
-            updateStats();
+            spawnController(); updateStats();
             setInterval(spawnHealer, 25000); 
         }
 
@@ -126,46 +123,44 @@
         }
 
         function spawnBoss() {
-            bossActive = true;
-            bgm.pause();
-            bossBgm.play().catch(()=>{});
+            bossActive = true; bgm.pause(); bossBgm.play().catch(()=>{});
             clearMinions();
             document.getElementById('boss-hp-bar').style.display = 'block';
             
-            // 決定隨機側邊進場位置
-            let bx, by;
-            const side = Math.floor(Math.random()*4);
-            if(side===0) { bx = innerWidth/2; by = -250; }
-            else if(side===1) { bx = innerWidth + 250; by = innerHeight/2; }
-            else if(side===2) { bx = innerWidth/2; by = innerHeight + 250; }
-            else { bx = -250; by = innerHeight/2; }
-
-            // 提升進場速度 speed: 0.25 (原本是 0.04)
-            bossRef = createEnemy(bx, by, { id:'boss', hp:30, maxHp:30, speed:0.25, size:220, class:'t-boss' });
+            let bx = -250, by = innerHeight/2; // 側邊急速進場
+            bossRef = createEnemy(bx, by, { id:'boss', hp:30, speed:0.35, size:220, class:'t-boss' });
             
-            // 強制開啟技能循環
-            setInterval(triggerBossSkill, 12000);
+            startSkillCycle();
+        }
+
+        function startSkillCycle() {
+            if(skillTimer) clearInterval(skillTimer);
+            skillTimer = setInterval(triggerBossSkill, skillInterval);
         }
 
         function triggerBossSkill() {
             if(!isLive || !bossActive || !bossRef) return;
+            
+            // 螢幕震動效果 (方案 A)
+            stage.classList.add('shaking');
+            setTimeout(() => stage.classList.remove('shaking'), 500);
 
             const skills = ['分身', '狙擊部隊', '粉絲團', '嗨各位'];
             const skill = skills[Math.floor(Math.random() * skills.length)];
             const ann = document.getElementById('skill-announcement');
             ann.innerText = `皇之權能：${skill}`;
-            setTimeout(() => ann.innerText = '', 3000);
+            setTimeout(() => ann.innerText = '', 2000);
 
             if(skill === '分身') {
-                for(let i=0; i<12; i++) createEnemy(bossRef.state.x, bossRef.state.y, { id:'clone', hp:1, speed:2.0, size:100, class:'t-clone' });
+                for(let i=0; i<12; i++) createEnemy(bossRef.state.x, bossRef.state.y, { id:'clone', hp:1, speed:2.2, size:100, class:'t-clone' });
             } else if(skill === '狙擊部隊') {
                 for(let i=0; i<10; i++) setTimeout(() => createEnemy(undefined, undefined, TYPES.find(t=>t.id==='sniper')), i*200);
             } else if(skill === '粉絲團') {
                 const randomType = TYPES[Math.floor(Math.random()*TYPES.length)];
-                for(let i=0; i<18; i++) setTimeout(() => createEnemy(bossRef.state.x, bossRef.state.y, randomType), i*120);
+                for(let i=0; i<18; i++) setTimeout(() => createEnemy(bossRef.state.x, bossRef.state.y, randomType), i*100);
             } else if(skill === '嗨各位') {
                 document.querySelectorAll('.enemy').forEach(el => el.classList.add('hide-border'));
-                setTimeout(() => document.querySelectorAll('.enemy').forEach(el => el.classList.remove('hide-border')), 4000);
+                setTimeout(() => document.querySelectorAll('.enemy').forEach(el => el.classList.remove('hide-border')), bossPhase2 ? 3000 : 4000);
             }
         }
 
@@ -190,28 +185,33 @@
                 else { x=-100; y=Math.random()*innerHeight; }
             }
 
-            let targetPoint = null;
-            if(type.id === 'sniper') {
-                const angle = Math.random() * Math.PI * 2;
-                const dist = 180 + Math.random() * 80;
-                targetPoint = { x: innerWidth/2 + Math.cos(angle)*dist, y: innerHeight/2 + Math.sin(angle)*dist };
-            }
+            let targetPoint = (type.id === 'sniper') ? { 
+                x: innerWidth/2 + (Math.random()-0.5)*400, 
+                y: innerHeight/2 + (Math.random()-0.5)*400 
+            } : null;
 
-            const state = { x, y, hp: type.hp || 1, speed: type.speed || 1.0, id: type.id, radius: type.size/2, isEscaping: false, targetPoint };
+            const state = { x, y, hp: type.hp || 1, speed: type.speed || 1.0, id: type.id, radius: type.size/2, targetPoint };
             el.state = state;
 
             const hit = (e) => {
                 e.preventDefault();
                 if(state.id === 'heal') { el.remove(); return; }
                 hitSound.currentTime=0; hitSound.play();
-                if(state.id === 'coward') { state.isEscaping = !state.isEscaping; el.style.opacity = state.isEscaping ? "0.6" : "1"; return; }
+                if(state.id === 'coward') { state.isEscaping = true; return; }
 
                 state.hp--;
-                if(state.id === 'boss') document.getElementById('boss-hp-inner').style.width = (state.hp/30)*100 + '%';
+                if(state.id === 'boss') {
+                    document.getElementById('boss-hp-inner').style.width = (state.hp/30)*100 + '%';
+                    // 檢查進入第二階段 (方案 C)
+                    if(state.hp <= 15 && !bossPhase2) {
+                        bossPhase2 = true;
+                        enterPhase2();
+                    }
+                }
                 if(state.hp <= 0) {
                     if(state.id === 'build') applyShield();
                     if(state.id === 'greed') { score += 500; clearMinions(); }
-                    score += (state.id === 'boss' ? 5000 : (state.id==='clone'?5:15));
+                    score += (state.id === 'boss' ? 10000 : 15);
                     document.getElementById('score-text').innerText = `分數: ${score}`;
                     if(state.id === 'boss') victory();
                     if(el.laser) el.laser.remove();
@@ -226,32 +226,38 @@
             return el;
         }
 
+        function enterPhase2() {
+            bossRef.classList.add('phase2');
+            flash.style.display = 'block'; // 開啟探照燈
+            skillInterval = 4000; // 狂暴化：4 秒一次技能
+            startSkillCycle();
+            
+            const ann = document.getElementById('skill-announcement');
+            ann.innerText = "!!! 日蝕降臨：皇之狂暴 !!!";
+            ann.style.color = "#ff0000";
+            setTimeout(() => ann.innerText = "", 3000);
+        }
+
         function runMoveLogic(el, state) {
             const move = () => {
                 if(!isLive || !el.parentNode) return;
                 const tx = innerWidth/2, ty = innerHeight/2;
                 let dx = tx - state.x, dy = ty - state.y, d = Math.sqrt(dx*dx+dy*dy);
                 
-                // 到達核心判定
-                if(d < (state.id === 'boss' ? 85 : 25)) { 
+                if(d < (state.id === 'boss' ? 90 : 25)) { 
                     if(state.id === 'heal') healPlayer(); 
-                    else if(state.id === 'clone') { 
-                        if(bossRef) { 
-                            bossRef.state.hp = Math.min(30, bossRef.state.hp + 1.5); // 分身回血量提升
-                            document.getElementById('boss-hp-inner').style.width = (bossRef.state.hp/30)*100 + '%';
-                        }
-                    } else takeDamage();
+                    else if(state.id === 'clone') { if(bossRef) { bossRef.state.hp = Math.min(30, bossRef.state.hp+1); document.getElementById('boss-hp-inner').style.width = (bossRef.state.hp/30)*100 + '%'; } }
+                    else takeDamage();
                     el.remove(); return; 
                 }
 
                 let vx, vy;
                 if(state.id === 'coward' && state.isEscaping) {
                     vx = -(dx/d) * state.speed * 2.5; vy = -(dy/d) * state.speed * 2.5;
-                    if(state.x < -120 || state.x > innerWidth+120 || state.y < -120 || state.y > innerHeight+120) { el.remove(); return; }
+                    if(state.x < -100 || state.x > innerWidth+100) { el.remove(); return; }
                 } else if(state.id === 'clone') {
-                    // 分身瘋狂不規則移動
-                    vx = (dx/d)*state.speed + (Math.random()-0.5)*8;
-                    vy = (dy/d)*state.speed + (Math.random()-0.5)*8;
+                    vx = (dx/d)*state.speed + (Math.random()-0.5)*12;
+                    vy = (dy/d)*state.speed + (Math.random()-0.5)*12;
                 } else {
                     vx = (dx/d) * state.speed; vy = (dy/d) * state.speed;
                 }
@@ -265,18 +271,15 @@
 
         function runSniperLogic(el, state) {
             const laser = document.createElement('div');
-            laser.className = 'laser';
-            stage.appendChild(laser);
+            laser.className = 'laser'; stage.appendChild(laser);
             el.laser = laser;
 
             const moveAndSnipe = () => {
                 if(!isLive || !el.parentNode) { laser.remove(); return; }
                 let dx = state.targetPoint.x - state.x, dy = state.targetPoint.y - state.y;
                 let d = Math.sqrt(dx*dx+dy*dy);
-
                 if(d > 10) {
-                    state.x += (dx/d) * state.speed * 2.5;
-                    state.y += (dy/d) * state.speed * 2.5;
+                    state.x += (dx/d) * 3; state.y += (dy/d) * 3;
                     el.style.left = state.x - state.radius + 'px'; el.style.top = state.y - state.radius + 'px';
                     requestAnimationFrame(moveAndSnipe);
                 } else {
@@ -293,21 +296,16 @@
                 laser.style.left = state.x + 'px'; laser.style.top = state.y + 'px';
                 laser.style.width = Math.sqrt((tx-state.x)**2 + (ty-state.y)**2) + 'px';
                 laser.style.transform = `rotate(${Math.atan2(ty - state.y, tx - state.x)}rad)`;
-                
-                await new Promise(r => setTimeout(r, 800)); // 準備時間縮短
+                await new Promise(r => setTimeout(r, 800));
                 if(!el.parentNode) break;
                 laser.classList.add('laser-charge');
-                await new Promise(r => setTimeout(r, 2200)); // 瞄準
-                
+                await new Promise(r => setTimeout(r, 2000));
                 if(isLive && el.parentNode) {
                     takeDamage();
                     laser.classList.remove('laser-charge');
                     laser.style.display = 'none';
-                    // 換點
-                    const angle = Math.random() * Math.PI * 2;
-                    state.targetPoint = { x: innerWidth/2 + Math.cos(angle)*200, y: innerHeight/2 + Math.sin(angle)*200 };
-                    runSniperLogic(el, state);
-                    return; 
+                    state.targetPoint = { x: innerWidth/2 + (Math.random()-0.5)*500, y: innerHeight/2 + (Math.random()-0.5)*500 };
+                    runSniperLogic(el, state); return; 
                 }
             }
             laser.remove();
@@ -331,13 +329,12 @@
             if(playerHP <= 0) endGame();
         }
         function spawnController() { if(isLive) { createEnemy(); setTimeout(spawnController, spawnRate); } }
-        function victory() { isLive = false; showEnd("🏆 皇已駕崩！"); }
+        function victory() { isLive = false; showEnd("🏆 皇已駕崩！傳奇保衛者！"); }
         function endGame() { isLive = false; showEnd("🚫 防線崩潰"); }
         function showEnd(title) {
             const sec = Math.floor((Date.now()-startTime)/1000);
             document.getElementById('end-title').innerText = title;
-            document.getElementById('final-score').innerText = `最終得分：${score}`;
-            document.getElementById('final-time').innerText = `存活時間：${sec} 秒`;
+            document.getElementById('final-stats').innerHTML = `得分：${score}<br>存活：${sec}秒`;
             document.getElementById('end-ui').style.display = 'flex';
         }
     </script>
