@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>喀爾文：皇之降臨 v5.1.3</title>
+    <title>喀爾文：皇之怒 v5.1.4</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; touch-action: manipulation; color: white; }
         #game-stage { position: relative; width: 100vw; height: 100vh; background: radial-gradient(circle, #1a1a2e 0%, #000 100%); overflow: hidden; }
@@ -46,35 +46,32 @@
             <div id="score-text">分數: 0</div>
             <div id="timer-text">時間: 0s</div>
         </div>
-        <div id="skill-announcement" style="position:fixed; top:130px; width:100%; text-align:center; color:#ff4757; font-weight:bold; font-size:20px; z-index:40;"></div>
+        <div id="skill-announcement" style="position:fixed; top:130px; width:100%; text-align:center; color:#ff4757; font-weight:bold; font-size:24px; text-shadow: 0 0 10px #000; z-index:40;"></div>
         <div id="boss-hp-bar"><div id="boss-hp-inner"></div></div>
         <div id="safe-zone"></div>
     </div>
 
     <div id="start-ui" class="overlay">
-        <h2 style="color:#f1c40f; margin: 5px 0;">喀爾文保衛戰 v5.1.3</h2>
+        <h2 style="color:#f1c40f; margin: 5px 0;">喀爾文保衛戰 v5.1.4</h2>
         <div class="vol-control">
             <label>🔊 音量: <span id="vol-pct">50</span>%</label><br>
             <input type="range" id="global-vol" min="0" max="1" step="0.05" value="0.5" style="width:100%">
         </div>
         <div class="guide">
-            <div class="guide-item"><div class="g-icon" style="border:2px solid #fff"></div><div><b>普通/衝刺 (白/藍):</b> 基礎威脅。衝刺種速度較快。</div></div>
-            <div class="guide-item"><div class="g-icon" style="border:2px solid #ff0000"></div><div><b>狙擊手 (紅):</b> 進入中距離定點後瞄準核心，3秒後射擊扣血。</div></div>
-            <div class="guide-item"><div class="g-icon" style="border:2px solid #f39c12"></div><div><b>膽小者 (橘):</b> 點擊逃跑，逃跑中再被點擊會回頭。成功逃出螢幕則威脅解除。</div></div>
-            <div class="guide-item"><div class="g-icon" style="border:2px solid #2ecc71"></div><div><b>天使 (綠):</b> 撞擊核心可回復血量。擊中則消失。</div></div>
-            <div class="guide-item"><div class="g-icon" style="border:2px solid #a36629"></div><div><b>建築 (褐):</b> 擊殺後獲得抵擋一次傷害的藍色護盾。</div></div>
-            <div class="guide-item"><div class="g-icon" style="border:2px solid #e91e63"></div><div><b>貪婪 (粉):</b> 擊殺清除畫面上所有普通種與狙擊手。</div></div>
-            <div class="guide-item"><div class="g-icon" style="border:4px solid #ff4757; width:28px; height:28px;"></div><div><b>喀爾文皇 (巨紅):</b> 最終BOSS。90秒時從側邊侵入。</div></div>
+            <div class="guide-item"><div class="g-icon" style="border:2px solid #fff"></div><div><b>普通/衝刺:</b> 基礎威脅，衝刺種移動較快。</div></div>
+            <div class="guide-item"><div class="g-icon" style="border:2px solid #ff0000"></div><div><b>狙擊手:</b> 跑到定點後架起紅雷射，3秒後造成傷害。</div></div>
+            <div class="guide-item"><div class="g-icon" style="border:2px solid #f39c12"></div><div><b>膽小者:</b> 被點擊會撤退，逃走就不會扣你血。</div></div>
+            <div class="guide-item"><div class="g-icon" style="border:2px solid #2ecc71"></div><div><b>天使:</b> 撞擊核心可回血。</div></div>
+            <div class="guide-item"><div class="g-icon" style="border:2px solid #a36629"></div><div><b>建築:</b> 殺死後獲得護盾。</div></div>
+            <div class="guide-item"><div class="g-icon" style="border:4px solid #ff4757; width:28px; height:28px;"></div><div><b>克爾文皇:</b> BOSS！90秒隨機側邊急速登場，每12秒狂放技能。</div></div>
         </div>
         <button class="btn" onclick="startGame()">開始作戰</button>
     </div>
 
     <div id="end-ui" class="overlay" style="display:none; justify-content:center;">
         <h1 id="end-title" style="font-size: 40px;">戰鬥結束</h1>
-        <div style="background: #222; padding: 20px; border-radius: 15px; text-align: center; margin-bottom: 20px;">
-            <p id="final-score" style="font-size: 24px; color: #f1c40f; margin: 10px 0;"></p>
-            <p id="final-time" style="font-size: 24px; color: #fff; margin: 10px 0;"></p>
-        </div>
+        <p id="final-score" style="font-size: 24px; color: #f1c40f;"></p>
+        <p id="final-time" style="font-size: 24px; color: #fff;"></p>
         <button class="btn" onclick="location.reload()">重新整備</button>
     </div>
 
@@ -106,7 +103,7 @@
             { id:'coward', hp:1, speed:1.4, weight:12, class:'t-coward', size:60 },
             { id:'build', hp:1, speed:0.8, weight:6, class:'t-build', size:65 },
             { id:'greed', hp:1, speed:0.6, weight:4, class:'t-greed', size:80 },
-            { id:'sniper', hp:1, speed:1.1, weight:10, class:'t-sniper', size:55 }
+            { id:'sniper', hp:1, speed:1.3, weight:10, class:'t-sniper', size:55 }
         ];
 
         function startGame() {
@@ -123,10 +120,7 @@
             if(!isLive) return;
             const sec = Math.floor((Date.now()-startTime)/1000);
             document.getElementById('timer-text').innerText = `時間: ${sec}s`;
-            
-            // 頻率控制：初始1.2s，每秒-0.012s，下限0.5s
             spawnRate = Math.max(500, 1200 - (sec * 12)); 
-            
             if (sec >= 90 && !bossActive) spawnBoss();
             setTimeout(updateStats, 1000);
         }
@@ -138,7 +132,7 @@
             clearMinions();
             document.getElementById('boss-hp-bar').style.display = 'block';
             
-            // 從畫面隨機一側進入
+            // 決定隨機側邊進場位置
             let bx, by;
             const side = Math.floor(Math.random()*4);
             if(side===0) { bx = innerWidth/2; by = -250; }
@@ -146,15 +140,15 @@
             else if(side===2) { bx = innerWidth/2; by = innerHeight + 250; }
             else { bx = -250; by = innerHeight/2; }
 
-            bossRef = createEnemy(bx, by, { id:'boss', hp:30, maxHp:30, speed:0.04, size:220, class:'t-boss' });
+            // 提升進場速度 speed: 0.25 (原本是 0.04)
+            bossRef = createEnemy(bx, by, { id:'boss', hp:30, maxHp:30, speed:0.25, size:220, class:'t-boss' });
+            
+            // 強制開啟技能循環
             setInterval(triggerBossSkill, 12000);
         }
 
         function triggerBossSkill() {
             if(!isLive || !bossActive || !bossRef) return;
-            // 確保皇已經在畫面內才放技能
-            const dToCenter = Math.sqrt((innerWidth/2 - bossRef.state.x)**2 + (innerHeight/2 - bossRef.state.y)**2);
-            if(dToCenter > 350) return; 
 
             const skills = ['分身', '狙擊部隊', '粉絲團', '嗨各位'];
             const skill = skills[Math.floor(Math.random() * skills.length)];
@@ -163,12 +157,12 @@
             setTimeout(() => ann.innerText = '', 3000);
 
             if(skill === '分身') {
-                for(let i=0; i<10; i++) createEnemy(bossRef.state.x, bossRef.state.y, { id:'clone', hp:1, speed:1.5, size:100, class:'t-clone' });
+                for(let i=0; i<12; i++) createEnemy(bossRef.state.x, bossRef.state.y, { id:'clone', hp:1, speed:2.0, size:100, class:'t-clone' });
             } else if(skill === '狙擊部隊') {
-                for(let i=0; i<10; i++) setTimeout(() => createEnemy(undefined, undefined, TYPES.find(t=>t.id==='sniper')), i*300);
+                for(let i=0; i<10; i++) setTimeout(() => createEnemy(undefined, undefined, TYPES.find(t=>t.id==='sniper')), i*200);
             } else if(skill === '粉絲團') {
                 const randomType = TYPES[Math.floor(Math.random()*TYPES.length)];
-                for(let i=0; i<15; i++) setTimeout(() => createEnemy(bossRef.state.x, bossRef.state.y, randomType), i*150);
+                for(let i=0; i<18; i++) setTimeout(() => createEnemy(bossRef.state.x, bossRef.state.y, randomType), i*120);
             } else if(skill === '嗨各位') {
                 document.querySelectorAll('.enemy').forEach(el => el.classList.add('hide-border'));
                 setTimeout(() => document.querySelectorAll('.enemy').forEach(el => el.classList.remove('hide-border')), 4000);
@@ -196,15 +190,11 @@
                 else { x=-100; y=Math.random()*innerHeight; }
             }
 
-            // 優化狙擊手目標點：確保在畫面內且距離核心 150~250px
             let targetPoint = null;
             if(type.id === 'sniper') {
                 const angle = Math.random() * Math.PI * 2;
-                const dist = 150 + Math.random() * 100;
-                targetPoint = { 
-                    x: innerWidth/2 + Math.cos(angle) * dist, 
-                    y: innerHeight/2 + Math.sin(angle) * dist 
-                };
+                const dist = 180 + Math.random() * 80;
+                targetPoint = { x: innerWidth/2 + Math.cos(angle)*dist, y: innerHeight/2 + Math.sin(angle)*dist };
             }
 
             const state = { x, y, hp: type.hp || 1, speed: type.speed || 1.0, id: type.id, radius: type.size/2, isEscaping: false, targetPoint };
@@ -221,7 +211,7 @@
                 if(state.hp <= 0) {
                     if(state.id === 'build') applyShield();
                     if(state.id === 'greed') { score += 500; clearMinions(); }
-                    score += (state.id === 'boss' ? 5000 : 10);
+                    score += (state.id === 'boss' ? 5000 : (state.id==='clone'?5:15));
                     document.getElementById('score-text').innerText = `分數: ${score}`;
                     if(state.id === 'boss') victory();
                     if(el.laser) el.laser.remove();
@@ -242,17 +232,26 @@
                 const tx = innerWidth/2, ty = innerHeight/2;
                 let dx = tx - state.x, dy = ty - state.y, d = Math.sqrt(dx*dx+dy*dy);
                 
+                // 到達核心判定
                 if(d < (state.id === 'boss' ? 85 : 25)) { 
                     if(state.id === 'heal') healPlayer(); 
-                    else if(state.id === 'clone') { if(bossRef) { bossRef.state.hp = Math.min(30, bossRef.state.hp+0.5); document.getElementById('boss-hp-inner').style.width = (bossRef.state.hp/30)*100 + '%'; } }
-                    else takeDamage();
+                    else if(state.id === 'clone') { 
+                        if(bossRef) { 
+                            bossRef.state.hp = Math.min(30, bossRef.state.hp + 1.5); // 分身回血量提升
+                            document.getElementById('boss-hp-inner').style.width = (bossRef.state.hp/30)*100 + '%';
+                        }
+                    } else takeDamage();
                     el.remove(); return; 
                 }
 
                 let vx, vy;
                 if(state.id === 'coward' && state.isEscaping) {
-                    vx = -(dx/d) * state.speed * 2; vy = -(dy/d) * state.speed * 2;
-                    if(state.x < -100 || state.x > innerWidth+100 || state.y < -100 || state.y > innerHeight+100) { el.remove(); return; }
+                    vx = -(dx/d) * state.speed * 2.5; vy = -(dy/d) * state.speed * 2.5;
+                    if(state.x < -120 || state.x > innerWidth+120 || state.y < -120 || state.y > innerHeight+120) { el.remove(); return; }
+                } else if(state.id === 'clone') {
+                    // 分身瘋狂不規則移動
+                    vx = (dx/d)*state.speed + (Math.random()-0.5)*8;
+                    vy = (dy/d)*state.speed + (Math.random()-0.5)*8;
                 } else {
                     vx = (dx/d) * state.speed; vy = (dy/d) * state.speed;
                 }
@@ -275,9 +274,9 @@
                 let dx = state.targetPoint.x - state.x, dy = state.targetPoint.y - state.y;
                 let d = Math.sqrt(dx*dx+dy*dy);
 
-                if(d > 5) {
-                    state.x += (dx/d) * state.speed * 2;
-                    state.y += (dy/d) * state.speed * 2;
+                if(d > 10) {
+                    state.x += (dx/d) * state.speed * 2.5;
+                    state.y += (dy/d) * state.speed * 2.5;
                     el.style.left = state.x - state.radius + 'px'; el.style.top = state.y - state.radius + 'px';
                     requestAnimationFrame(moveAndSnipe);
                 } else {
@@ -295,15 +294,16 @@
                 laser.style.width = Math.sqrt((tx-state.x)**2 + (ty-state.y)**2) + 'px';
                 laser.style.transform = `rotate(${Math.atan2(ty - state.y, tx - state.x)}rad)`;
                 
-                await new Promise(r => setTimeout(r, 1000));
+                await new Promise(r => setTimeout(r, 800)); // 準備時間縮短
                 if(!el.parentNode) break;
                 laser.classList.add('laser-charge');
-                await new Promise(r => setTimeout(r, 2000));
+                await new Promise(r => setTimeout(r, 2200)); // 瞄準
                 
                 if(isLive && el.parentNode) {
                     takeDamage();
                     laser.classList.remove('laser-charge');
                     laser.style.display = 'none';
+                    // 換點
                     const angle = Math.random() * Math.PI * 2;
                     state.targetPoint = { x: innerWidth/2 + Math.cos(angle)*200, y: innerHeight/2 + Math.sin(angle)*200 };
                     runSniperLogic(el, state);
@@ -336,8 +336,8 @@
         function showEnd(title) {
             const sec = Math.floor((Date.now()-startTime)/1000);
             document.getElementById('end-title').innerText = title;
-            document.getElementById('final-score').innerText = `得分：${score}`;
-            document.getElementById('final-time').innerText = `生存時間：${sec} 秒`;
+            document.getElementById('final-score').innerText = `最終得分：${score}`;
+            document.getElementById('final-time').innerText = `存活時間：${sec} 秒`;
             document.getElementById('end-ui').style.display = 'flex';
         }
     </script>
