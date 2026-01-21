@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>喀爾文：皇之權能 v5.1</title>
+    <title>喀爾文：數量壓制 v5.1.1</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; touch-action: manipulation; color: white; }
         #game-stage { position: relative; width: 100vw; height: 100vh; background: radial-gradient(circle, #1a1a2e 0%, #000 100%); overflow: hidden; }
         #safe-zone { position: absolute; top: 50%; left: 50%; width: 50px; height: 50px; margin: -25px 0 0 -25px; z-index: 10; background-image: url('safe.jpg'); background-size: cover; border-radius: 50%; border: 2px solid #f1c40f; box-shadow: 0 0 15px #f1c40f; transition: all 0.3s; }
         #safe-zone.shielded { border: 5px solid #3498db; box-shadow: 0 0 30px #3498db; transform: scale(1.2); }
 
-        .enemy { position: absolute; border-radius: 50%; background-image: url('12672.jpg'); background-size: cover; z-index: 5; transition: border 0.3s, opacity 0.3s; }
+        .enemy { position: absolute; border-radius: 50%; background-image: url('12672.jpg'); background-size: cover; z-index: 5; }
         .t-normal { border: 2px solid #fff; }
         .t-speed { border: 2px solid #3498db; }
         .t-heal { border: 3px solid #2ecc71; box-shadow: 0 0 15px #2ecc71; }
@@ -19,22 +19,23 @@
         .t-greed { border: 4px solid #e91e63; box-shadow: 0 0 20px #e91e63; }
         .t-sniper { border: 3px solid #ff0000; box-shadow: 0 0 10px #ff0000; }
         .t-boss { border: 6px solid #ff4757; box-shadow: 0 0 40px #ff4757; }
-        .t-clone { border: 1px solid #ff4757; opacity: 0.7; } /* 皇的分身 */
-        
-        /* 隱藏邊框技能 */
+        .t-clone { border: 1px solid #ff4757; opacity: 0.7; }
         .hide-border { border: none !important; box-shadow: none !important; }
 
-        .laser { position: absolute; height: 2px; background: rgba(255, 0, 0, 0.5); transform-origin: left center; z-index: 4; pointer-events: none; }
-        .laser-charge { animation: blink 0.5s infinite; background: rgba(255, 0, 0, 1); height: 3px; }
+        .laser { position: absolute; height: 2px; background: rgba(255, 0, 0, 0.4); transform-origin: left center; z-index: 4; pointer-events: none; display: none; }
+        .laser-charge { animation: blink 0.5s infinite; background: rgba(255, 0, 0, 1); height: 3px; display: block; }
         @keyframes blink { 50% { opacity: 0; } }
 
         #ui-layer { position: absolute; top: 15px; width: 100%; text-align: center; pointer-events: none; z-index: 20; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; z-index: 100; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        .guide { width: 100%; max-width: 450px; background: #222; padding: 15px; border-radius: 15px; font-size: 11px; margin: 10px 0; text-align: left; }
+        .guide-item { display: flex; align-items: center; margin-bottom: 6px; border-bottom: 1px solid #333; padding-bottom: 4px; }
+        .g-icon { width: 22px; height: 22px; border-radius: 50%; background-image: url('12672.jpg'); background-size: cover; margin-right: 10px; flex-shrink: 0; }
+        
         .vol-control { margin: 10px 0; background: #333; padding: 10px; border-radius: 10px; width: 80%; max-width: 300px; text-align: center; pointer-events: auto; }
         .btn { padding: 12px 60px; background: #f1c40f; color: #000; border: none; border-radius: 50px; font-size: 18px; font-weight: bold; cursor: pointer; }
         #boss-hp-bar { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); width: 70%; height: 12px; background: #333; display: none; z-index: 30; border: 2px solid #fff; border-radius: 6px; }
         #boss-hp-inner { width: 100%; height: 100%; background: #ff4757; transition: width 0.2s; }
-        #skill-announcement { position: fixed; top: 120px; width: 100%; text-align: center; color: #ff4757; font-size: 24px; font-weight: bold; text-shadow: 0 0 10px #000; pointer-events: none; z-index: 40; display: none; }
     </style>
 </head>
 <body>
@@ -45,55 +46,60 @@
             <div id="score-text">分數: 0</div>
             <div id="timer-text">時間: 0s</div>
         </div>
-        <div id="skill-announcement"></div>
+        <div id="skill-announcement" style="position:fixed; top:130px; width:100%; text-align:center; color:#ff4757; font-weight:bold; font-size:20px; z-index:40;"></div>
         <div id="boss-hp-bar"><div id="boss-hp-inner"></div></div>
         <div id="safe-zone"></div>
     </div>
 
     <div id="start-ui" class="overlay">
-        <h2 style="color:#f1c40f">喀爾文保衛戰 v5.1</h2>
+        <h2 style="color:#f1c40f; margin: 5px 0;">喀爾文保衛戰 v5.1.1</h2>
         <div class="vol-control">
-            <label>🔊 音量設定: <span id="vol-pct">50</span>%</label><br>
+            <label>🔊 音量: <span id="vol-pct">50</span>%</label><br>
             <input type="range" id="global-vol" min="0" max="1" step="0.05" value="0.5" style="width:100%">
         </div>
-        <button class="btn" onclick="startGame()">開始防禦任務</button>
+        <div class="guide">
+            <div class="guide-item"><div class="g-icon" style="border:2px solid #ff0000"></div><div><b>狙擊手 (紅):</b> 進入定點後瞄準，3秒後射擊扣血。</div></div>
+            <div class="guide-item"><div class="g-icon" style="border:2px solid #ff4757; width:28px; height:28px;"></div><div><b>喀爾文皇 (巨紅):</b> 90秒登場，每12秒隨機發動權能技能。</div></div>
+            <div class="guide-item"><div class="g-icon" style="border:2px solid #2ecc71"></div><div><b>補血天使 (綠):</b> 撞擊核心回血。注意：皇分身撞到會回皇的血！</div></div>
+            <div class="guide-item"><div class="g-icon" style="border:2px solid #f39c12"></div><div><b>膽小者 (橘):</b> 被點擊會撤退，撤退中被點擊會再次回頭。</div></div>
+            <div class="guide-item"><div class="g-icon" style="border:2px solid #a36629"></div><div><b>建築 (褐):</b> 擊殺後核心獲得「藍色護盾」。</div></div>
+            <div class="guide-item"><div class="g-icon" style="border:2px solid #e91e63"></div><div><b>貪婪 (粉):</b> 擊殺清除雜魚 (不含皇與天使)。</div></div>
+        </div>
+        <button class="btn" onclick="startGame()">開始對決</button>
     </div>
 
     <div id="end-ui" class="overlay" style="display:none; justify-content:center;">
         <h1 id="end-title">任務結束</h1>
-        <p id="final-stats"></p>
-        <button class="btn" onclick="location.reload()">重新挑戰</button>
+        <button class="btn" onclick="location.reload()">重新整備</button>
     </div>
 
     <audio id="bgm" src="bgm.mp3" loop></audio>
     <audio id="hit-sound" src="hit.mp3"></audio>
 
     <script>
-        let score = 0, playerHP = 3, isLive = false, hasShield = false, startTime, baseSpeed = 1.0, spawnRate = 1600, bossActive = false, bossRef = null;
+        let score = 0, playerHP = 3, isLive = false, hasShield = false, startTime, spawnRate = 1200, bossActive = false, bossRef = null;
         const stage = document.getElementById('game-stage');
         const bgm = document.getElementById('bgm');
         const hitSound = document.getElementById('hit-sound');
         const volSlider = document.getElementById('global-vol');
-        const volPct = document.getElementById('vol-pct');
 
-        // 音量持久化
         const savedVol = localStorage.getItem('calvin_vol') || 0.5;
         volSlider.value = savedVol;
-        volPct.innerText = Math.round(savedVol * 100);
+        document.getElementById('vol-pct').innerText = Math.round(savedVol * 100);
         volSlider.oninput = () => {
             const v = volSlider.value;
-            volPct.innerText = Math.round(v * 100);
+            document.getElementById('vol-pct').innerText = Math.round(v * 100);
             bgm.volume = v; hitSound.volume = v;
             localStorage.setItem('calvin_vol', v);
         };
 
         const TYPES = [
-            { id:'normal', hp:1, speed:1.0, size:60, weight:35, class:'t-normal' },
-            { id:'speed', hp:1, speed:1.6, size:50, weight:12, class:'t-speed' }, 
-            { id:'coward', hp:1, speed:1.3, size:60, weight:10, class:'t-coward' },
-            { id:'build', hp:1, speed:0.7, size:65, weight:5, class:'t-build' },
-            { id:'greed', hp:1, speed:0.5, size:80, weight:3, class:'t-greed' },
-            { id:'sniper', hp:1, speed:0.4, size:55, weight:8, class:'t-sniper' }
+            { id:'normal', hp:1, speed:1.1, weight:40, class:'t-normal', size:60 },
+            { id:'speed', hp:1, speed:1.8, weight:15, class:'t-speed', size:50 }, 
+            { id:'coward', hp:1, speed:1.4, weight:12, class:'t-coward', size:60 },
+            { id:'build', hp:1, speed:0.8, weight:6, class:'t-build', size:65 },
+            { id:'greed', hp:1, speed:0.6, weight:4, class:'t-greed', size:80 },
+            { id:'sniper', hp:1, speed:1.0, weight:10, class:'t-sniper', size:55 }
         ];
 
         function startGame() {
@@ -101,17 +107,20 @@
             bgm.play().catch(()=>{});
             document.getElementById('start-ui').remove();
             isLive = true; startTime = Date.now();
-            spawnController(); updateStats();
-            setInterval(spawnHealer, 30000); 
+            spawnController();
+            updateStats();
+            setInterval(spawnHealer, 25000); 
         }
 
         function updateStats() {
             if(!isLive) return;
             const sec = Math.floor((Date.now()-startTime)/1000);
             document.getElementById('timer-text').innerText = `時間: ${sec}s`;
+            
+            // 隨時間提高生成頻率，不再提高速度
+            spawnRate = Math.max(300, 1200 - (sec * 12)); 
+            
             if (sec >= 90 && !bossActive) spawnBoss();
-            baseSpeed = Math.min(2.3, 1.0 + (sec/50));
-            spawnRate = Math.max(450, 1600 - (sec*12));
             setTimeout(updateStats, 1000);
         }
 
@@ -127,7 +136,7 @@
         function spawnBoss() {
             bossActive = true; clearMinions();
             document.getElementById('boss-hp-bar').style.display = 'block';
-            bossRef = createEnemy(innerWidth/2, -250, { id:'boss', hp:30, maxHp:30, speed:0.05, size:220, class:'t-boss' });
+            bossRef = createEnemy(innerWidth/2, -250, { id:'boss', hp:30, maxHp:30, speed:0.04, size:220, class:'t-boss' });
             setInterval(triggerBossSkill, 12000);
         }
 
@@ -137,44 +146,18 @@
             const skill = skills[Math.floor(Math.random() * skills.length)];
             const ann = document.getElementById('skill-announcement');
             ann.innerText = `皇之權能：${skill}`;
-            ann.style.display = 'block';
-            setTimeout(() => ann.style.display = 'none', 3000);
+            setTimeout(() => ann.innerText = '', 3000);
 
             if(skill === '分身') {
-                const count = Math.floor(Math.random()*8) + 8;
-                for(let i=0; i<count; i++) {
-                    createEnemy(bossRef.state.x, bossRef.state.y, { id:'clone', hp:1, speed:1.5, size:100, class:'t-clone' });
-                }
+                for(let i=0; i<10; i++) createEnemy(bossRef.state.x, bossRef.state.y, { id:'clone', hp:1, speed:1.5, size:100, class:'t-clone' });
             } else if(skill === '狙擊部隊') {
-                const originalSpeed = bossRef.state.speed;
-                bossRef.state.speed = 0;
-                let count = 0;
-                const interval = setInterval(() => {
-                    createEnemy(undefined, undefined, TYPES.find(t=>t.id==='sniper'));
-                    count++;
-                    if(count >= 10) clearInterval(interval);
-                }, 500);
-                setTimeout(() => { if(bossRef.state) bossRef.state.speed = originalSpeed; }, 7000);
+                for(let i=0; i<10; i++) setTimeout(() => createEnemy(undefined, undefined, TYPES.find(t=>t.id==='sniper')), i*300);
             } else if(skill === '粉絲團') {
-                bossRef.style.backgroundImage = "url('zibao.jpg')"; // 假設有齊寶圖，若無則維持
-                const originalSpeed = bossRef.state.speed;
-                bossRef.state.speed = 0;
-                const count = Math.floor(Math.random()*8) + 13;
                 const randomType = TYPES[Math.floor(Math.random()*TYPES.length)];
-                for(let i=0; i<count; i++) {
-                    setTimeout(() => createEnemy(bossRef.state.x, bossRef.state.y, randomType), i * 200);
-                }
-                setTimeout(() => { 
-                    if(bossRef.state) {
-                        bossRef.state.speed = originalSpeed;
-                        bossRef.style.backgroundImage = "url('12672.jpg')";
-                    }
-                }, 10000);
+                for(let i=0; i<15; i++) setTimeout(() => createEnemy(bossRef.state.x, bossRef.state.y, randomType), i*150);
             } else if(skill === '嗨各位') {
                 document.querySelectorAll('.enemy').forEach(el => el.classList.add('hide-border'));
-                setTimeout(() => {
-                    document.querySelectorAll('.enemy').forEach(el => el.classList.remove('hide-border'));
-                }, 4000);
+                setTimeout(() => document.querySelectorAll('.enemy').forEach(el => el.classList.remove('hide-border')), 4000);
             }
         }
 
@@ -191,6 +174,7 @@
             el.className = `enemy ${type.class}`;
             el.style.width = el.style.height = type.size + 'px';
             
+            // 初始座標處理
             if(x === undefined) {
                 let side = Math.floor(Math.random()*4);
                 if(side===0){ x=Math.random()*innerWidth; y=-100; }
@@ -199,7 +183,15 @@
                 else { x=-100; y=Math.random()*innerHeight; }
             }
 
-            const state = { x, y, hp: type.hp || 1, maxHp: type.hp || 1, speed: (type.id==='clone'?2 : baseSpeed * (type.speed || 1)), id: type.id, radius: type.size/2, isEscaping: false };
+            const state = { 
+                x, y, 
+                hp: type.hp || 1, 
+                speed: type.speed || 1.0, 
+                id: type.id, 
+                radius: type.size/2, 
+                isEscaping: false,
+                targetPoint: type.id === 'sniper' ? { x: Math.random()*(innerWidth-100)+50, y: Math.random()*(innerHeight-100)+50 } : null
+            };
             el.state = state;
 
             const hit = (e) => {
@@ -210,11 +202,10 @@
 
                 state.hp--;
                 if(state.id === 'boss') document.getElementById('boss-hp-inner').style.width = (state.hp/30)*100 + '%';
-
                 if(state.hp <= 0) {
                     if(state.id === 'build') applyShield();
                     if(state.id === 'greed') { score += 500; clearMinions(); }
-                    score += (state.id === 'boss' ? 5000 : (state.id==='clone'?2:10));
+                    score += (state.id === 'boss' ? 5000 : 10);
                     document.getElementById('score-text').innerText = `分數: ${score}`;
                     if(state.id === 'boss') victory();
                     if(el.laser) el.laser.remove();
@@ -236,69 +227,82 @@
                 let dx = tx - state.x, dy = ty - state.y, d = Math.sqrt(dx*dx+dy*dy);
                 
                 if(d < (state.id === 'boss' ? 85 : 25)) { 
-                    if(state.id === 'heal' || state.id === 'clone') healPlayer(); 
+                    if(state.id === 'heal') healPlayer(); 
+                    else if(state.id === 'clone') { if(bossRef) bossRef.state.hp = Math.min(30, bossRef.state.hp+1); }
                     else takeDamage();
                     el.remove(); return; 
                 }
 
                 let vx, vy;
                 if(state.id === 'coward' && state.isEscaping) {
-                    vx = -(dx/d) * state.speed * 2.0; vy = -(dy/d) * state.speed * 2.0;
-                    if(state.x < -120 || state.x > innerWidth+120 || state.y < -120 || state.y > innerHeight+120) { el.remove(); return; }
-                } else if(state.id === 'clone') {
-                    // 分身不規則移動
-                    vx = (dx/d)*state.speed + (Math.random()-0.5)*4;
-                    vy = (dy/d)*state.speed + (Math.random()-0.5)*4;
-                } else if(state.id === 'heal') {
-                    const angle = Math.atan2(dy, dx) + 0.04;
-                    vx = (tx - Math.cos(angle) * (d - 0.8)) - state.x;
-                    vy = (ty - Math.sin(angle) * (d - 0.8)) - state.y;
+                    vx = -(dx/d) * state.speed * 2; vy = -(dy/d) * state.speed * 2;
+                    if(state.x < -100 || state.x > innerWidth+100 || state.y < -100 || state.y > innerHeight+100) { el.remove(); return; }
                 } else {
                     vx = (dx/d) * state.speed; vy = (dy/d) * state.speed;
                 }
 
                 state.x += vx; state.y += vy;
-                el.style.left = (state.x - state.radius)+'px';
-                el.style.top = (state.y - state.radius)+'px';
+                el.style.left = (state.x - state.radius)+'px'; el.style.top = (state.y - state.radius)+'px';
                 requestAnimationFrame(move);
             };
             requestAnimationFrame(move);
         }
 
         function runSniperLogic(el, state) {
-            const tx = innerWidth/2, ty = innerHeight/2;
             const laser = document.createElement('div');
             laser.className = 'laser';
             stage.appendChild(laser);
             el.laser = laser;
 
-            const process = async () => {
-                while(isLive && el.parentNode) {
-                    laser.style.left = state.x + 'px';
-                    laser.style.top = state.y + 'px';
-                    laser.style.width = Math.sqrt((tx-state.x)**2 + (ty-state.y)**2) + 'px';
-                    laser.style.transform = `rotate(${Math.atan2(ty - state.y, tx - state.x)}rad)`;
-                    
-                    await new Promise(r => setTimeout(r, 1000));
-                    if(!el.parentNode) break;
-                    laser.classList.add('laser-charge');
-                    await new Promise(r => setTimeout(r, 2000));
-                    
-                    if(isLive && el.parentNode) {
-                        takeDamage();
-                        laser.classList.remove('laser-charge');
-                        state.x = Math.random() * (innerWidth-100) + 50;
-                        state.y = Math.random() * (innerHeight-100) + 50;
-                        el.style.left = state.x - state.radius + 'px';
-                        el.style.top = state.y - state.radius + 'px';
-                    }
+            const moveAndSnipe = () => {
+                if(!isLive || !el.parentNode) { laser.remove(); return; }
+                
+                // 1. 跑向狙擊點
+                let dx = state.targetPoint.x - state.x, dy = state.targetPoint.y - state.y;
+                let d = Math.sqrt(dx*dx+dy*dy);
+
+                if(d > 5) {
+                    state.x += (dx/d) * state.speed * 2;
+                    state.y += (dy/d) * state.speed * 2;
+                    el.style.left = state.x - state.radius + 'px';
+                    el.style.top = state.y - state.radius + 'px';
+                    requestAnimationFrame(moveAndSnipe);
+                } else {
+                    // 2. 抵達後架槍
+                    startLaserCycle(el, state, laser);
                 }
-                laser.remove();
             };
-            process();
+            requestAnimationFrame(moveAndSnipe);
         }
 
-        function spawnHealer() { if(isLive) createEnemy(undefined, undefined, { id:'heal', hp:1, speed:0.5, size:35, class:'t-heal' }); }
+        async function startLaserCycle(el, state, laser) {
+            const tx = innerWidth/2, ty = innerHeight/2;
+            while(isLive && el.parentNode) {
+                laser.style.display = 'block';
+                laser.style.left = state.x + 'px';
+                laser.style.top = state.y + 'px';
+                laser.style.width = Math.sqrt((tx-state.x)**2 + (ty-state.y)**2) + 'px';
+                laser.style.transform = `rotate(${Math.atan2(ty - state.y, tx - state.x)}rad)`;
+                
+                await new Promise(r => setTimeout(r, 1000));
+                if(!el.parentNode) break;
+                laser.classList.add('laser-charge');
+                await new Promise(r => setTimeout(r, 2000));
+                
+                if(isLive && el.parentNode) {
+                    takeDamage();
+                    laser.classList.remove('laser-charge');
+                    laser.style.display = 'none';
+                    // 重新換點
+                    state.targetPoint = { x: Math.random()*(innerWidth-100)+50, y: Math.random()*(innerHeight-100)+50 };
+                    runSniperLogic(el, state); // 重新進入移動邏輯
+                    return; 
+                }
+            }
+            laser.remove();
+        }
+
+        function spawnHealer() { if(isLive) createEnemy(undefined, undefined, { id:'heal', hp:1, speed:0.6, size:35, class:'t-heal' }); }
         function applyShield() { hasShield = true; document.getElementById('safe-zone').classList.add('shielded'); }
         function healPlayer() { if(playerHP < 3) { document.getElementsByClassName('hp-heart')[playerHP].style.opacity = "1"; playerHP++; } }
         function takeDamage() {
@@ -308,14 +312,8 @@
             if(playerHP <= 0) endGame();
         }
         function spawnController() { if(isLive) { createEnemy(); setTimeout(spawnController, spawnRate); } }
-        function victory() { isLive = false; showEnd("🏆 皇已駕崩！"); }
-        function endGame() { isLive = false; showEnd("🚫 任務失敗"); }
-        function showEnd(title) {
-            const sec = Math.floor((Date.now()-startTime)/1000);
-            document.getElementById('end-title').innerText = title;
-            document.getElementById('final-stats').innerHTML = `得分：${score}<br>生存：${sec} 秒`;
-            document.getElementById('end-ui').style.display = 'flex';
-        }
+        function victory() { isLive = false; document.getElementById('end-title').innerText = "🏆 皇已駕崩！"; document.getElementById('end-ui').style.display='flex'; }
+        function endGame() { isLive = false; document.getElementById('end-title').innerText = "🚫 防線崩潰"; document.getElementById('end-ui').style.display='flex'; }
     </script>
 </body>
 </html>
