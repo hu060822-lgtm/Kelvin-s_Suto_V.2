@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>喀爾文保衛戰 v4.1 - 威脅評估</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; touch-action: manipulation; color: white; }
+        #game-stage { position: relative; width: 100vw; height: 100vh; background: radial-gradient(circle, #1a1a2e 0%, #000 100%); overflow: hidden; }
+        
+        /* 安全區 */
+        #safe-zone {
+            position: absolute; top: 50%; left: 50%;
+            width: 70px; height: 70px; margin: -35px 0 0 -35px;
+            z-index: 10; background-image: url('safe.jpg');
+            background-size: cover; border-radius: 50%;
+            border: 3px solid #f1c40f; box-shadow: 0 0 20px #f1c40f;
+        }
+
+        /* 敵人群組樣式 */
+        .enemy { position: absolute; border-radius: 50%; background-size: cover; background-position: center; z-index: 5; transition: transform 0.1s, opacity 0.3s; }
+        .t-normal { border: 2px solid #fff; }
+        .t-tank { border: 4px solid #f1c40f; }
+        .t-speed { border: 2px solid #3498db; filter: brightness(1.5) hue-rotate(180deg); }
+        .t-ghost { opacity: 0.4; border: 1px dashed #fff; }
+        .t-split { border: 2px solid #2ecc71; }
+        .t-reverse { filter: invert(1); }
+        .t-blink { border: 3px solid #9b59b6; box-shadow: 0 0 10px #9b59b6; }
+
+        /* UI 與 圖鑑 */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; z-index: 100; overflow-y: auto; padding: 20px; box-sizing: border-box; }
+        .guide-container { width: 100%; max-width: 400px; text-align: left; margin-bottom: 20px; }
+        .enemy-card { display: flex; align-items: center; background: #222; margin-bottom: 10px; padding: 10px; border-radius: 10px; border-left: 5px solid #f1c40f; }
+        .card-img { width: 40px; height: 40px; border-radius: 50%; background-image: url('12672.jpg'); background-size: cover; margin-right: 15px; }
+        
+        #ui-layer { position: absolute; top: 15px; width: 100%; text-align: center; pointer-events: none; z-index: 20; }
+        .btn { padding: 15px 60px; background: #f1c40f; color: #000; border: none; border-radius: 50px; font-size: 20px; font-weight: bold; margin: 20px 0; }
+    </style>
+</head>
+<body>
+
+    <div id="game-stage">
+        <div id="ui-layer">
+            <div id="score-text" style="font-size:24px;">分數: 0</div>
+            <div id="timer-text">時間: 0s</div>
+        </div>
+        <div id="safe-zone"></div>
+    </div>
+
+    <div id="start-ui" class="overlay">
+        <h1 style="color:#f1c40f; margin-bottom: 5px;">喀爾文威脅清單</h1>
+        <p style="font-size: 14px; color: #aaa;">點擊各種類型的喀爾文來守護核心</p>
+        
+        <div class="guide-container">
+            <div class="enemy-card">
+                <div class="card-img" style="border: 2px solid white;"></div>
+                <div><b>普通種：</b>最基礎的，點擊 1 次。</div>
+            </div>
+            <div class="enemy-card" style="border-left-color: #f1c40f;">
+                <div class="card-img" style="border: 3px solid #f1c40f; width: 50px; height: 50px;"></div>
+                <div><b>坦克種：</b>血厚，需要點擊 4 次！</div>
+            </div>
+            <div class="enemy-card" style="border-left-color: #3498db;">
+                <div class="card-img" style="filter: hue-rotate(180deg); border: 2px solid #3498db;"></div>
+                <div><b>衝刺種：</b>體積小但速度極快。</div>
+            </div>
+            <div class="enemy-card" style="border-left-color: #fff;">
+                <div class="card-img" style="opacity: 0.4;"></div>
+                <div><b>幽靈種：</b>半透明，難以察覺。</div>
+            </div>
+            <div class="enemy-card" style="border-left-color: #2ecc71;">
+                <div class="card-img" style="border: 2px solid #2ecc71;"></div>
+                <div><b>分裂種：</b>擊殺後會生出更多小喀爾文。</div>
+            </div>
+            <div class="enemy-card" style="border-left-color: #fff;">
+                <div class="card-img" style="filter: invert(1);"></div>
+                <div><b>反向種：</b>行蹤難以捉摸。</div>
+            </div>
+            <div class="enemy-card" style="border-left-color: #9b59b6;">
+                <div class="card-img" style="border: 3px solid #9b59b6;"></div>
+                <div><b>閃現種：</b>會突然向前瞬移一段距離。</div>
+            </div>
+        </div>
+
+        <button class="btn" onclick="startGame()">確認情報，開戰！</button>
+    </div>
+
+    <div id="end-ui" class="overlay" style="display:none; justify-content: center;">
+        <h1 style="color:#e74c3c">你被素頭了！</h1>
+        <p id="final-stats" style="font-size: 20px;"></p>
+        <button class="btn" onclick="location.reload()">重新整備</button>
+    </div>
+
+    <audio id="bgm" src="bgm.mp3" loop></audio>
+    <audio id="hit-sound" src="hit.mp3"></audio>
+
+    <script>
+        let score = 0, isLive = false, startTime, baseSpeed = 1.4, spawnRate = 1300;
+        const stage = document.getElementById('game-stage');
+        const bgm = document.getElementById('bgm');
+        const hitSound = document.getElementById('hit-sound');
+
+        const TYPES = [
+            { id:'normal', hp:1, speed:1.0, size:65, weight:50, class:'t-normal' },
+            { id:'tank', hp:4, speed:0.6, size:130, weight:15, class:'t-tank' },
+            { id:'speed', hp:1, speed:2.4, size:45, weight:15, class:'t-speed' },
+            { id:'ghost', hp:1, speed:1.2, size:65, weight:10, class:'t-ghost' },
+            { id:'split', hp:1, speed:1.1, size:70, weight:10, class:'t-split' },
+            { id:'reverse', hp:1, speed:1.2, size:65, weight:10, class:'t-reverse' },
+            { id:'blink', hp:2, speed:1.0, size:65, weight:10, class:'t-blink' }
+        ];
+
+        function startGame() {
+            document.getElementById('start-ui').remove();
+            isLive = true; startTime = Date.now();
+            bgm.play().catch(()=>{});
+            spawnController();
+            updateStats();
+        }
+
+        function updateStats() {
+            if(!isLive) return;
+            const sec = Math.floor((Date.now()-startTime)/1000);
+            document.getElementById('timer-text').innerText = `時間: ${sec}s`;
+            baseSpeed = 1.4 + (sec/10);
+            spawnRate = Math.max(300, 1300 - (sec*15));
+            setTimeout(updateStats, 1000);
+        }
+
+        function createEnemy(x, y, forcedType = null) {
+            if(!isLive) return;
+
+            // 隨機選種
+            let type;
+            if(forcedType) { type = forcedType; }
+            else {
+                const totalWeight = TYPES.reduce((a,b)=>a+b.weight, 0);
+                let r = Math.random() * totalWeight, current = 0;
+                for(let t of TYPES) {
+                    current += t.weight;
+                    if(r <= current) { type = t; break; }
+                }
+            }
+
+            const el = document.createElement('div');
+            el.className = `enemy ${type.class}`;
+            el.style.backgroundImage = "url('12672.jpg')";
+            el.style.width = el.style.height = type.size + 'px';
+            
+            // 隨機出生位置 (如果沒有指定 x,y)
+            if(x === undefined) {
+                let side = Math.floor(Math.random()*4);
+                if(side===0){ x=Math.random()*innerWidth; y=-100; }
+                else if(side===1){ x=innerWidth+100; y=Math.random()*innerHeight; }
+                else if(side===2){ x=Math.random()*innerWidth; y=innerHeight+100; }
+                else { x=-100; y=Math.random()*innerHeight; }
+            }
+
+            const state = { x, y, hp: type.hp, speed: baseSpeed * type.speed, seed: Math.random()*10, id: type.id, radius: type.size/2 };
+            
+            const hit = (e) => {
+                e.preventDefault(); hitSound.currentTime=0; hitSound.play();
+                state.hp--;
+                if(state.hp <= 0) {
+                    if(state.id === 'split') {
+                        createEnemy(state.x+20, state.y, TYPES[0]);
+                        createEnemy(state.x-20, state.y, TYPES[0]);
+                    }
+                    score += 10; document.getElementById('score-text').innerText = `分數: ${score}`;
+                    el.remove();
+                }
+            };
+            el.addEventListener('touchstart', hit); el.addEventListener('mousedown', hit);
+            stage.appendChild(el);
+
+            let t = 0;
+            const move = () => {
+                if(!isLive || !el.parentNode) return;
+                const sec = (Date.now()-startTime)/1000;
+                const tx = innerWidth/2, ty = innerHeight/2;
+                const dx = tx - state.x, dy = ty - state.y, d = Math.sqrt(dx*dx+dy*dy);
+                
+                if(d < 40) return endGame();
+
+                let vx = (dx/d) * state.speed, vy = (dy/d) * state.speed;
+
+                // 特殊移動模式
+                if(sec > 30) { // 30秒後蛇行
+                    const wave = Math.sin(t*0.1 + state.seed) * (state.speed*2);
+                    vx += -(dy/d)*wave; vy += (dx/d)*wave;
+                }
+                if(state.id === 'blink' && t % 100 === 0) { // 閃現
+                    state.x += (dx/d)*40; state.y += (dy/d)*40;
+                }
+
+                state.x += vx; state.y += vy;
+                el.style.left = (state.x - state.radius)+'px';
+                el.style.top = (state.y - state.radius)+'px';
+                t++; requestAnimationFrame(move);
+            };
+            requestAnimationFrame(move);
+        }
+
+        function spawnController() {
+            if(!isLive) return;
+            createEnemy();
+            setTimeout(spawnController, spawnRate);
+        }
+
+        function endGame() {
+            isLive = false; bgm.pause();
+            document.getElementById('end-ui').style.display = 'flex';
+            document.getElementById('final-stats').innerText = `分數: ${score} | 生存: ${Math.floor((Date.now()-startTime)/1000)}s`;
+        }
+    </script>
+</body>
+</html>
